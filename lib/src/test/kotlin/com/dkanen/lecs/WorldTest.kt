@@ -184,15 +184,9 @@ class WorldTest {
 
         world.setComponent(player, Position(1.0, 3.0))
 
-        val systemId = world.addSystem(listOf(positionComponent)) { entityId ->
-            world.entityIndex[entityId]?.let { record: Record ->
-                val positionIndex = world.componentIndex[world.kClassIndex[Position::class]]!![record.archetype.id]!!.column
-                println(record.archetype.components.get(record.row!!)[positionIndex])
-                println("Entity $entityId has a position component")
-                val position = record.archetype.components.get(record.row!!)[positionIndex] as Position
-                position.x += 1.0
-            }
-            println("Entity $entityId has a position component")
+        val systemId = world.addSystem(listOf(positionComponent)) { components ->
+            val position: Position = components[0] as Position
+            position.x += 1.0
         }
 
         world.process(systemId)

@@ -2,72 +2,6 @@ package com.dkanen.lecs
 
 import kotlin.reflect.KClass
 
-typealias EntityId = Int
-typealias ComponentId = Int
-typealias ArchetypeId = Int
-typealias SystemId = Int
-typealias Type = MutableList<ComponentId>
-
-/**
- * In a language stricter about the size of array elements like Swift, c++ you might need this:
-struct Column {
-void *elements;      // buffer with component data
-size_t element_size; // size of a single element
-size_t count;        // number of elements
-}
- */
-typealias Column = MutableList<Any>
-
-data class ArchetypeEdge(
-    var add: Archetype? = null,
-    var remove: Archetype? = null
-)
-
-data class Archetype(
-    val id: ArchetypeId,
-    val type: Type,
-    val components: MutableList<Column>,
-    /**
-     *  This is a list of lists so this allows a vectorizable structure like this:
-     *  [Velocity, Position]
-     *  [Velocity, Position]
-     *  [Velocity, Position]
-     */
-    val edges: MutableMap<ComponentId, ArchetypeEdge> = mutableMapOf()
-) {
-    override fun hashCode(): Int = id
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Archetype
-
-        return id == other.id
-    }
-    override fun toString(): String = buildString {
-        append("Archetype(id=$id, type=$type, components=$components")
-    }
-}
-data class Record(var archetype: Archetype, var row: Int?) {
-    override fun toString(): String {
-        return buildString {
-            append("Record(archetype=${archetype.id}, row=$row)")
-        }
-    }
-}
-data class ArchetypeRecord(val column: Int)
-typealias ArchetypeMap = MutableMap<ArchetypeId, ArchetypeRecord>
-
-interface Component
-data class Position(var x: Double, val y: Double): Component
-data class Velocity(val x: Double, val y: Double): Component
-data class Health(val hp: Double): Component
-data class System(val selector: List<ComponentId>, val update: (EntityId) -> Unit): Component
-class MetaComponent(): Component
-class MetaArchetype(): Component
-class MetaSystem(): Component
-
 class World {
     var entityCounter = 0
     // Quickly find an entity's archetype
@@ -174,7 +108,7 @@ class World {
         return componentId
     }
 
-    fun addSystem(selector: List<ComponentId>, lamda: (EntityId) -> Unit): SystemId {
+    fun addSystem(selector: List<ComponentId>, lamda: (List<Component>) -> Unit): SystemId {
         val systemId = entity()
         addComponent(systemId, System::class)
         val system = System(selector, lamda)
@@ -182,13 +116,29 @@ class World {
         return systemId
     }
 
+    /**
+     * Only allows selecting one component right now. Not terribly useful, yet.
+     */
+    fun select(selector: List<ComponentId>): List<Component> {
+        val componentId = selector.first()
+
+        val components: MutableList<Component> = mutableListOf()
+
+        entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add?.let { archetype: Archetype ->
+            archetype.components[archetype.type.indexOf(componentId)].forEach { component: Any ->
+                components.add(component as Component)
+            }
+        }
+
+        return components
+    }
+
     fun process(systemId: SystemId) {
         val system = getComponent(systemId, System::class)
 
-        entityIndex.forEach { (entityId: EntityId, record: Record) ->
-            if (record.archetype.type.contains(system!!.selector.first())) {
-                system.update(entityId)
-            }
+        val results = select(system!!.selector)
+        results.forEach { component: Component ->
+            system.update(listOf(component))
         }
     }
 
