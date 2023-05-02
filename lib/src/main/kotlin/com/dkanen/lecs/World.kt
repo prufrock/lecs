@@ -10,20 +10,45 @@ class World {
     val kClassIndex = mutableMapOf<KClass<*>, ComponentId>()
     // There are fewer components than archetypes, since archetypes are combinations of components, so index by component
     val componentIndex = mutableMapOf<ComponentId, ArchetypeMap>()
+
+    /**
+     * The root Entity is the first Entity created. It has no Components, so it's Archetype is the empty Archetype. This
+     * makes it possible to use the root Entity to get the empty Archetype and search for other Archetypes from there.
+     */
     val rootEntity: EntityId
+
+    /**
+     * The empty Archetype has no Components. This makes it possible to follow its edges to any Archetype. Just have to
+     * make sure to add each individual Component to the empty Archetype.
+     */
     val emptyArchetypeEntity: EntityId
+
+    /**
+     * This Component tags a Component as a Component. You can use it to find Components.
+     */
     val metaComponentEntity: EntityId
+
+    /**
+     * This Component tags an Archetype as an Archetype. You can use it to find Archetypes.
+     */
     val metaArchetypeEntity: EntityId
+
+    /**
+     * This Component tags a System as a System. You can use it to find Systems.
+     */
     val metaSystemEntity: EntityId
 
     init {
         rootEntity = entity()
         emptyArchetypeEntity = entity()
         initEmptyArchetype()
+
         metaComponentEntity = addMetaComponent(MetaComponent::class)
         setComponent(metaComponentEntity, MetaComponent())
+
         metaArchetypeEntity = addMetaComponent(MetaArchetype::class)
         setComponent(metaArchetypeEntity, MetaArchetype())
+
         metaSystemEntity = addMetaComponent(MetaSystem::class)
         setComponent(metaSystemEntity, MetaSystem())
     }

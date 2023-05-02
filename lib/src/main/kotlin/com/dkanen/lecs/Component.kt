@@ -1,6 +1,6 @@
 package com.dkanen.lecs
 
-typealias ComponentId = Int
+typealias ComponentId = EntityId
 
 interface Component
 

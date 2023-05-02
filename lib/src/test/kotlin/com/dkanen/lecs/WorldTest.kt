@@ -21,6 +21,7 @@ class WorldTest {
 
     @Test
     fun addOneComponentToAnEntity() {
+        assertEquals(0, world.rootEntity)
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 

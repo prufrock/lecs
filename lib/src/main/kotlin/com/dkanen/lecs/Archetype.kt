@@ -1,6 +1,6 @@
 package com.dkanen.lecs
 
-typealias ArchetypeId = Int
+typealias ArchetypeId = EntityId
 
 typealias Type = MutableList<ComponentId>
 
