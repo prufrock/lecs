@@ -12,7 +12,7 @@ size_t element_size; // size of a single element
 size_t count;        // number of elements
 }
  */
-typealias Column = MutableList<Any>
+typealias Column = MutableList<Any?>
 
 class MetaArchetype(): Component
 

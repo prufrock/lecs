@@ -82,7 +82,20 @@ class World {
         // Create a record and either store the component in an existing archetype or create a new archetype
         val record: Record = updateRecord(entityIndex[componentId]!!, componentId)
 
-        // Is it worth worrying about removing an archetype from a component if no entities have it?
+        // Add placeholder in the Archetype's components list for the new component.
+        if (record.archetype.components.lastIndex < record.row!!) {
+            // TODO: consider finding a way to set this when the row is assigned to the record.
+            record.archetype.components.add(mutableListOf())
+        }
+
+        // Determine which column the component ends up in.
+        componentColumn = record.archetype.type.indexOf(componentId)
+
+        // Fill the row with nulls up to the current column.
+        while (record.archetype.components[record.row!!].lastIndex < componentColumn) {
+            record.archetype.components[record.row!!].add(null)
+        }
+
         entityIndex[componentId] = record
         componentIndex[componentId]?.set(record.archetype.id, ArchetypeRecord(componentColumn!!)) ?: run {
             componentIndex[componentId] = mutableMapOf(record.archetype.id to ArchetypeRecord(componentColumn!!))
@@ -112,12 +125,25 @@ class World {
         // create a new record with a new archetype.
         val record: Record = updateRecord(entityIndex[entityId]!!, componentId)
 
-        val componentColumn = if (record.archetype.components.isEmpty()) { 0 } else { record.archetype.components.lastIndex }
-        // Is it worth worrying about removing an archetype from a component if no entities have it?
+        // Add placeholder in the Archetype's components list for the new component.
+        if (record.archetype.components.lastIndex < record.row!!) {
+            // TODO: consider finding a way to set this when the row is assigned to the record.
+            record.archetype.components.add(mutableListOf())
+        }
+
+        // Determine which column the component ends up in.
+        val componentColumn = record.archetype.type.indexOf(componentId)
+
+        // Fill the row with nulls up to the current column.
+        while (record.archetype.components[record.row!!].lastIndex < componentColumn) {
+            record.archetype.components[record.row!!].add(null)
+        }
+
         entityIndex[entityId] = record
 
+        // Update the component index so the column of a component in an archetype can be found quickly.
         componentIndex[componentId]?.let { archetypeMap: ArchetypeMap ->
-
+            componentIndex[componentId]?.set(record.archetype.id, ArchetypeRecord(componentColumn!!))
         } ?: run {
             componentIndex[componentId] = mutableMapOf(record.archetype.id to ArchetypeRecord(componentColumn!!))
         }
@@ -150,7 +176,7 @@ class World {
         val components: MutableList<Component> = mutableListOf()
 
         entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add?.let { archetype: Archetype ->
-            archetype.components[archetype.type.indexOf(componentId)].forEach { component: Any ->
+            archetype.components[archetype.type.indexOf(componentId)].forEach { component: Any? ->
                 components.add(component as Component)
             }
         }
@@ -199,14 +225,8 @@ class World {
         val archetype: Archetype = record.archetype
         val columnId: Int = archetype.type.indexOf(kClassIndex[component::class]!!)
         val row: Int = record.row ?: archetype.components[columnId].count()
-        if (archetype.components.count() <= columnId) {
-            archetype.components.add(mutableListOf())
-        }
-        if (archetype.components[columnId].count() <= row) {
-            archetype.components[columnId].add(component)
-        } else {
-            archetype.components[columnId][row] = component
-        }
+
+        archetype.components[row][columnId] = component
     }
 
     fun <T: Any> getComponent(entityId: EntityId, component: KClass<T>): T? {
@@ -224,7 +244,7 @@ class World {
         // find the entities component
         @Suppress("UNCHECKED_CAST")
         record.row?.let {row ->
-            return archetype.components[archetype.type.indexOf(component)][row] as T
+            return archetype.components[row][archetype.type.indexOf(component)] as T
         }
         return null
     }
@@ -232,6 +252,7 @@ class World {
     private fun addToArchetype(archetype: Archetype, componentId: ComponentId): Archetype {
         return archetype.edges[componentId]?.add ?: run {
             val newComponents = mutableListOf<Column>()
+            // extend the type of the new archetype to include the new component
             val newArchetype = Archetype(entity(), (archetype.type + componentId).toMutableList(), newComponents, mutableMapOf())
             // update the old archetype to provide a path to the new archetype
             if (archetype.edges[componentId] == null) {
@@ -251,12 +272,12 @@ class World {
 
     private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype) {
         archetype.components.elementAtOrNull(row)?.let { column: Column ->
-            val newColumns = mutableListOf<Any>()
+            val newColumns = mutableListOf<Any?>()
             // map the components from the old archetype to the new archetype
             // do it in addArchetype order so the list can expand from the left: [A], [A, B], [A, B, C]
             addArchetype.type.forEachIndexed { i: Int, addArchetypeComponentId: ComponentId ->
                 val index: Int = archetype.type.lastIndexOf(addArchetypeComponentId)
-                if ( index >= 0) {
+                if (column.isNotEmpty() && index >= 0) {
                     newColumns.add(column[index])
                 }
             }

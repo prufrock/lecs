@@ -179,6 +179,18 @@ class WorldTest {
     }
 
     @Test
+    fun setTwoComponentsOutOfOrder() {
+        val player = world.entity()
+
+        world.addComponent(player, Position::class)
+        world.addComponent(player, Velocity::class)
+        world.setComponent(player, Velocity(1.0, 2.0))
+        world.setComponent(player, Position(3.0, 6.0))
+
+        assertEquals(Velocity(1.0, 2.0), world.getComponent(player, Velocity::class))
+    }
+
+    @Test
     fun simpleSystem() {
         val player = world.entity()
         val positionComponent = world.addComponent(player, Position::class)
