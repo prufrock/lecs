@@ -50,7 +50,7 @@ data class Archetype(
 data class Record(var archetype: Archetype, var row: Int?) {
     override fun toString(): String {
         return buildString {
-            append("Record(archetype=${archetype.id}, row=$row)")
+            append("Record(archetype=${archetype}, row=$row)")
         }
     }
 }
