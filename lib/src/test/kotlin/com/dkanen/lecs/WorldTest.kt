@@ -42,10 +42,8 @@ class WorldTest {
         assertEquals(1, world.findArchetypes(MetaComponent::class).size)
         assertEquals(1, world.findArchetypes(MetaArchetype::class).size)
         assertEquals(1, world.findArchetypes(Position::class).size)
-        assertInstanceOf(MetaComponent::class.java, world.getComponent(world.metaComponentEntity, MetaComponent::class))
-        assertInstanceOf(MetaArchetype::class.java, world.getComponent(world.metaArchetypeEntity, MetaArchetype::class))
-        assertTrue(world.hasComponent(world.metaArchetypeEntity, MetaArchetype::class))
         assertTrue(world.hasComponent(world.metaComponentEntity, MetaComponent::class))
+        assertTrue(world.hasComponent(world.metaArchetypeEntity, MetaArchetype::class))
     }
 
     @Test

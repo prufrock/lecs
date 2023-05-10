@@ -44,13 +44,10 @@ class World {
         initEmptyArchetype()
 
         metaComponentEntity = addMetaComponent(MetaComponent::class)
-        setComponent(metaComponentEntity, MetaComponent())
 
         metaArchetypeEntity = addMetaComponent(MetaArchetype::class)
-        setComponent(metaArchetypeEntity, MetaArchetype())
 
         metaSystemEntity = addMetaComponent(MetaSystem::class)
-        setComponent(metaSystemEntity, MetaSystem())
     }
 
     fun entity(): EntityId {
