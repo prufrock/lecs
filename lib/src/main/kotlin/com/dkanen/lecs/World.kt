@@ -45,6 +45,7 @@ class World {
 
         metaComponentEntity = addMetaComponent(MetaComponent::class)
 
+        // TODO: MetaArchetype and MetaSystem are Components
         metaArchetypeEntity = addMetaComponent(MetaArchetype::class)
 
         metaSystemEntity = addMetaComponent(MetaSystem::class)
@@ -110,6 +111,7 @@ class World {
             val id = entity()
             kClassIndex[component] = id
             //TODO: this entity needs to have the MetaComponent component added to it
+            addComponent(id, MetaComponent::class)
             id
         }
 

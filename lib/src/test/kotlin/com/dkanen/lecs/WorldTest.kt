@@ -30,16 +30,17 @@ class WorldTest {
         checkCountersAndIndexes()
 
         val positionId = world.addComponent(entityId, Position::class)
+        assertTrue(world.hasComponent(positionId, MetaComponent::class))
         world.addComponent(entityId, Position::class) // make sure adding the same component twice is idempotent
         expectedEntityCounter += 2 // Add: position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: position[Component]
         expectedComponentIndexSize += 1 // Add: position[Component]
-        expectedEntityIndexSize += 1 // Add: position[Component]
+        expectedEntityIndexSize += 2 // Add: entity(now that it has a component, position[Component]
         checkCountersAndIndexes()
         assertTrue(world.entityIndex[world.rootEntity]!!.archetype.edges[positionId]?.add != null, "Position[Component] should be in the rootEntity's archetype.")
         assertTrue(world.hasComponent(entityId, Position::class))
 
-        assertEquals(1, world.findArchetypes(MetaComponent::class).size)
+        assertEquals(2, world.findArchetypes(MetaComponent::class).size) // Components: MetaComponent, Position
         assertEquals(1, world.findArchetypes(MetaArchetype::class).size)
         assertEquals(1, world.findArchetypes(Position::class).size)
         assertTrue(world.hasComponent(world.metaComponentEntity, MetaComponent::class))
@@ -59,14 +60,14 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 1 // Add: Position[Component] because now entity the entity has a component to store in a row
+        expectedEntityIndexSize += 2 // Add: entity(now that it has a component, position[Component]
         checkCountersAndIndexes()
 
         val velocityId = world.addComponent(entityId, Velocity::class)
         expectedEntityCounter += 2 // Add: Velocity[Component] and Position,Velocity[Archetype]
         expectedkClassIndexSize += 1 // Add: Velocity[Component]
         expectedComponentIndexSize += 1 // Add: Velocity[Component]
-        expectedEntityIndexSize += 0 // No change to the entityIndex because the entity simply modifies the existing archetype
+        expectedEntityIndexSize += 1 // Add: Velocity[Component]
         checkCountersAndIndexes()
 
         assertTrue(world.hasComponent(entityId, Position::class))
@@ -89,7 +90,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 1 // Add: Position[Component] because now entityId1 the entity has a component to store in a row
+        expectedEntityIndexSize += 2 // Add: entity1, Position[Component] because now entityId1 has a component to store in a row
         checkCountersAndIndexes()
 
         val entityId2 = world.entity()
@@ -100,7 +101,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Velocity[Component], Velocity[Archetype]
         expectedkClassIndexSize += 1 // Add: Velocity[Component]
         expectedComponentIndexSize += 1 // Add: Velocity[Component]
-        expectedEntityIndexSize += 1 // Add: Velocity[Component] because now entity the entityId2 has a component to store in a row
+        expectedEntityIndexSize += 2 // Add: entity2, Velocity[Component] because now entity the entityId2 has a component to store in a row
         checkCountersAndIndexes()
 
         assertTrue(world.hasComponent(entityId1, Position::class))
@@ -125,7 +126,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], Position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 1 // Add: Position[Component] because now entityId1 the entity has a component to store in a row
+        expectedEntityIndexSize += 2 // Add: entity, Position[Component] because now entityId1 the entity has a component to store in a row
 
         world.setComponent(entityId, Position(1.0, 2.0))
         world.setComponent(entityId, Position(1.0, 3.0))
@@ -157,7 +158,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], Position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 1 // Add: Position[Component] because now the car entity has a component to store in a row
+        expectedEntityIndexSize += 2 // Add: car, Position[Component] because now the car entity has a component to store in a row
         checkCountersAndIndexes()
 
         world.addComponent(player, Position::class)
@@ -172,7 +173,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Health[Component] Position,Health[Archetype] for the player entity
         expectedkClassIndexSize += 1 // Add: Health[MetaComponent]
         expectedComponentIndexSize += 1 // Add: Health[MetaComponent]
-        expectedEntityIndexSize += 0 // There should be a MetaComponent added as an Archetype for the Health[Component] but that's not happening yet
+        expectedEntityIndexSize += 1 // Add: Health[Component]
         checkCountersAndIndexes()
     }
 
@@ -209,7 +210,7 @@ class WorldTest {
         expectedEntityCounter += 8 // rootEntity, emptyArchetype, MetaComponent[Component], MetaComponent[Archetype], MetaArchetype[Component], MetaArchetype[Archetype], MetaSystem[Component], MetaSystem[Archetype]
         expectedkClassIndexSize += 3 // MetaComponent, MetaArchetype, MetaSystem
         expectedComponentIndexSize += 3 // MetaComponent[Component], MetaArchetype[Component], MetaSystem[Component]
-        expectedEntityIndexSize += 4 // rootEntity, MetaComponent[Component], MetaArchetype[Component]
+        expectedEntityIndexSize += 4 // rootEntity, MetaComponent[Component], MetaArchetype[Component], MetaSystem[Component]
     }
 
     private fun checkCountersAndIndexes() {
