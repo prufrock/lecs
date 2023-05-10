@@ -45,10 +45,11 @@ class World {
 
         metaComponentEntity = addMetaComponent(MetaComponent::class)
 
-        // TODO: MetaArchetype and MetaSystem are Components
+        // TODO: MetaArchetype is a Component
         metaArchetypeEntity = addMetaComponent(MetaArchetype::class)
 
-        metaSystemEntity = addMetaComponent(MetaSystem::class)
+        metaSystemEntity = entity()
+        addComponent(metaSystemEntity, MetaComponent::class)
     }
 
     fun entity(): EntityId {

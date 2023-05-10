@@ -40,7 +40,7 @@ class WorldTest {
         assertTrue(world.entityIndex[world.rootEntity]!!.archetype.edges[positionId]?.add != null, "Position[Component] should be in the rootEntity's archetype.")
         assertTrue(world.hasComponent(entityId, Position::class))
 
-        assertEquals(2, world.findArchetypes(MetaComponent::class).size) // Components: MetaComponent, Position
+        assertEquals(3, world.findArchetypes(MetaComponent::class).size) // Components: MetaComponent, Position, MetaSystem
         assertEquals(1, world.findArchetypes(MetaArchetype::class).size)
         assertEquals(1, world.findArchetypes(Position::class).size)
         assertTrue(world.hasComponent(world.metaComponentEntity, MetaComponent::class))
@@ -207,9 +207,9 @@ class WorldTest {
     }
 
     private fun setExpectInitialWorldValues() {
-        expectedEntityCounter += 8 // rootEntity, emptyArchetype, MetaComponent[Component], MetaComponent[Archetype], MetaArchetype[Component], MetaArchetype[Archetype], MetaSystem[Component], MetaSystem[Archetype]
-        expectedkClassIndexSize += 3 // MetaComponent, MetaArchetype, MetaSystem
-        expectedComponentIndexSize += 3 // MetaComponent[Component], MetaArchetype[Component], MetaSystem[Component]
+        expectedEntityCounter += 7 // rootEntity, emptyArchetype, MetaComponent[Component], MetaComponent[Archetype], MetaArchetype[Component], MetaArchetype[Archetype], MetaSystem[Component]
+        expectedkClassIndexSize += 2 // MetaComponent, MetaArchetype
+        expectedComponentIndexSize += 2 // MetaComponent[Component], MetaArchetype[Component]
         expectedEntityIndexSize += 4 // rootEntity, MetaComponent[Component], MetaArchetype[Component], MetaSystem[Component]
     }
 
