@@ -31,20 +31,23 @@ class WorldTest {
 
         val positionId = world.addComponent(entityId, Position::class)
         assertTrue(world.hasComponent(positionId, MetaComponent::class))
+        assertEquals(1, world.entityIndex[entityId]!!.archetype.components.count())
         world.addComponent(entityId, Position::class) // make sure adding the same component twice is idempotent
+        assertEquals(1, world.entityIndex[entityId]!!.archetype.components.count())
         expectedEntityCounter += 2 // Add: position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: position[Component]
         expectedComponentIndexSize += 1 // Add: position[Component]
-        expectedEntityIndexSize += 2 // Add: entity(now that it has a component, position[Component]
+        expectedEntityIndexSize += 3 // Add: entity(now that it has a component), position[Component], position[Archetype]
         checkCountersAndIndexes()
         assertTrue(world.entityIndex[world.rootEntity]!!.archetype.edges[positionId]?.add != null, "Position[Component] should be in the rootEntity's archetype.")
         assertTrue(world.hasComponent(entityId, Position::class))
 
-        assertEquals(3, world.findArchetypes(MetaComponent::class).size) // Components: MetaComponent, Position, MetaSystem
-        assertEquals(1, world.findArchetypes(MetaArchetype::class).size)
+        assertEquals(4, world.findArchetypes(MetaComponent::class).size) // Components: MetaArchetype, MetaComponent, MetaSystem, Position
+        assertEquals(3, world.findArchetypes(MetaArchetype::class).size) // Archetype: (Empty), (MetaArchetype), (Position)
         assertEquals(1, world.findArchetypes(Position::class).size)
         assertTrue(world.hasComponent(world.metaComponentEntity, MetaComponent::class))
-        assertTrue(world.hasComponent(world.metaArchetypeEntity, MetaArchetype::class))
+        assertTrue(world.hasComponent(world.metaArchetypeEntity, MetaComponent::class))
+        assertTrue(world.hasComponent(world.metaArchetypeArchetype, MetaArchetype::class))
     }
 
     @Test
@@ -207,10 +210,10 @@ class WorldTest {
     }
 
     private fun setExpectInitialWorldValues() {
-        expectedEntityCounter += 7 // rootEntity, emptyArchetype, MetaComponent[Component], MetaComponent[Archetype], MetaArchetype[Component], MetaArchetype[Archetype], MetaSystem[Component]
+        expectedEntityCounter += 7 // rootEntity - 0, emptyArchetype - 1, MetaComponent[Component] - 4, MetaComponent[Archetype] - 5, MetaArchetype[Component] - 2, MetaArchetype[Archetype] - 3, MetaSystem[Component] - 6
         expectedkClassIndexSize += 2 // MetaComponent, MetaArchetype
         expectedComponentIndexSize += 2 // MetaComponent[Component], MetaArchetype[Component]
-        expectedEntityIndexSize += 4 // rootEntity, MetaComponent[Component], MetaArchetype[Component], MetaSystem[Component]
+        expectedEntityIndexSize += 7 // all the entities are now represented in the entity index thanks to meta components
     }
 
     private fun checkCountersAndIndexes() {

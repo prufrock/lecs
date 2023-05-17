@@ -33,6 +33,8 @@ class World {
      */
     val metaArchetypeEntity: EntityId
 
+    val metaArchetypeArchetype: ArchetypeId
+
     /**
      * This Component tags a System as a System. You can use it to find Systems.
      */
@@ -41,12 +43,14 @@ class World {
     init {
         rootEntity = entity()
         emptyArchetypeEntity = entity()
-        initEmptyArchetype()
+        val metaArchetypeIds = initEmptyArchetype()
+        metaArchetypeEntity = metaArchetypeIds.first
+        metaArchetypeArchetype = metaArchetypeIds.second
 
         metaComponentEntity = addMetaComponent(MetaComponent::class)
 
-        // TODO: MetaArchetype is a Component
-        metaArchetypeEntity = addMetaComponent(MetaArchetype::class)
+        addComponent(metaArchetypeEntity, MetaComponent::class)
+        addComponent(metaArchetypeArchetype, MetaArchetype::class)
 
         metaSystemEntity = entity()
         addComponent(metaSystemEntity, MetaComponent::class)
@@ -56,9 +60,23 @@ class World {
         return entityCounter++
     }
 
-    private fun initEmptyArchetype() {
-        val archetype = Archetype(emptyArchetypeEntity, mutableListOf(), mutableListOf())
+    private fun initEmptyArchetype(): Pair<ComponentId, ArchetypeId> {
+        // The Component that tags an Archetype as an Archetype
+        val metaArchetypeId = entity()
+        // The Archetype that holds all the Archetypes, is also an Archetype so it's type is MetaArchetype
+        val metaArchetypeArchetype = Archetype(entity(), mutableListOf(metaArchetypeId), mutableListOf())
+        kClassIndex[MetaArchetype::class] = metaArchetypeId
+
+        val archetype = Archetype(
+            id = emptyArchetypeEntity,
+            type = mutableListOf(),
+            components = mutableListOf(),
+            edges = mutableMapOf(Pair(metaArchetypeId, ArchetypeEdge(add = metaArchetypeArchetype)))
+        )
         entityIndex[rootEntity] = Record(archetype, null)
+        entityIndex[emptyArchetypeEntity] = Record(archetype, null)
+
+        return Pair(metaArchetypeId, metaArchetypeArchetype.id)
     }
 
     /**
@@ -111,13 +129,13 @@ class World {
         val componentId = kClassIndex[component] ?: run {
             val id = entity()
             kClassIndex[component] = id
-            //TODO: this entity needs to have the MetaComponent component added to it
             addComponent(id, MetaComponent::class)
             id
         }
 
         // if there is no Record create one
         if (entityIndex[entityId] == null) {
+            // The row is null because the root entity has no components.
             entityIndex[entityId] = Record(entityIndex[rootEntity]!!.archetype, row = null)
         }
 
@@ -194,6 +212,7 @@ class World {
     }
 
     private fun updateRecord(record: Record, componentId: ComponentId): Record {
+        // Check to see if the component is in the record's archetype by checking the component index.
         // There could be an optimization where if the archetype is only used by this entity, then it can be modified in place.
         if (componentIndex[componentId]?.get(record.archetype.id) == null) {
             val archetype = record.archetype
@@ -211,10 +230,16 @@ class World {
             record.row = if (addArchetype.components.isEmpty()) {
                 0
             } else {
-                addArchetype.components.lastIndex
+                addArchetype.components.lastIndex + 1
             }
+            return record
+        } else {
+            // The Component already exists in the Archetype
+            // If the row is already set then we're attempting to add a component that already exists.
+            // If not then this is a new record and the row should be next available spot in the Archetype.
+            record.row = record.row ?: record.archetype.components.count()
+            return record
         }
-        return record
     }
 
     fun <T: Component> setComponent(entityId: EntityId, component: T) {
@@ -251,9 +276,8 @@ class World {
 
     private fun addToArchetype(archetype: Archetype, componentId: ComponentId): Archetype {
         return archetype.edges[componentId]?.add ?: run {
-            val newComponents = mutableListOf<Column>()
-            // extend the type of the new archetype to include the new component
-            val newArchetype = Archetype(entity(), (archetype.type + componentId).toMutableList(), newComponents, mutableMapOf())
+            // With a new component, a different archetype is needed.
+            val newArchetype = createOrUpdateArchetype((archetype.type + componentId).toMutableList())
             // update the old archetype to provide a path to the new archetype
             if (archetype.edges[componentId] == null) {
                 archetype.edges[componentId] = ArchetypeEdge()
@@ -268,6 +292,29 @@ class World {
 
             newArchetype
         }
+    }
+
+    private fun createOrUpdateArchetype(type: Type): Archetype {
+        // find only the type=1 archetypes for now
+        return createOrUpdateSimpleArchetypes(type) ?: createArchetype(type)
+    }
+
+    private fun createOrUpdateSimpleArchetypes(type: Type): Archetype? {
+        return if (type.count() == 1) {
+            findArchetype(type)
+        } else {
+            null
+        }
+    }
+
+    private fun createArchetype(type: Type): Archetype {
+        val id = entity()
+        addComponent(id, MetaArchetype::class)
+        return Archetype(id, type, mutableListOf(), mutableMapOf())
+    }
+
+    private fun findArchetype(type: Type): Archetype? {
+        return entityIndex[rootEntity]?.archetype?.edges?.get(type.first())?.add
     }
 
     private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype) {
@@ -299,14 +346,25 @@ class World {
         return archetypeMap[record.archetype.id] != null
     }
 
-    fun findArchetypes(component: KClass<*>): List<Archetype> {
+    fun findArchetypes(component: KClass<*>): List<ArchetypeId> {
         val componentId = kClassIndex[component] ?: return emptyList()
         return findArchetypes(componentId)
     }
 
-    fun findArchetypes(componentId: ComponentId): List<Archetype> {
+    fun findArchetypes(componentId: ComponentId): List<ArchetypeId> {
         val archetypeMap: ArchetypeMap = componentIndex[componentId] ?: return emptyList()
         //TODO: create an archetype index to speed this up
-        return entityIndex.toList().map { it.second.archetype }.filter { archetype: Archetype -> archetypeMap[archetype.id] != null }
+        return entityIndex.toList().filter { (_, record: Record) -> archetypeMap[record.archetype.id] != null }.map { it.first }
+    }
+
+    fun identify(entityId: EntityId): String {
+        when(entityId) {
+            rootEntity -> return "root entity"
+            emptyArchetypeEntity -> return "empty archetype entity"
+            metaArchetypeEntity -> return "meta archetype entity"
+            metaComponentEntity -> return "meta component entity"
+            metaSystemEntity -> return "meta system entity"
+            else -> return "unknown entity $entityId"
+        }
     }
 }
