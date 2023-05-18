@@ -63,14 +63,14 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 2 // Add: entity(now that it has a component, position[Component]
+        expectedEntityIndexSize += 3 // Add: entity(now that it has a component), position[Component], position[Archetype]
         checkCountersAndIndexes()
 
         val velocityId = world.addComponent(entityId, Velocity::class)
         expectedEntityCounter += 2 // Add: Velocity[Component] and Position,Velocity[Archetype]
         expectedkClassIndexSize += 1 // Add: Velocity[Component]
         expectedComponentIndexSize += 1 // Add: Velocity[Component]
-        expectedEntityIndexSize += 1 // Add: Velocity[Component]
+        expectedEntityIndexSize += 2 // Add: Velocity[Component], Velocity[Archetype]
         checkCountersAndIndexes()
 
         assertTrue(world.hasComponent(entityId, Position::class))
@@ -93,7 +93,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 2 // Add: entity1, Position[Component] because now entityId1 has a component to store in a row
+        expectedEntityIndexSize += 3 // Add: entity1, Position[Component] because now entityId1 has a component to store in a row, Position[Archetype]
         checkCountersAndIndexes()
 
         val entityId2 = world.entity()
@@ -104,7 +104,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Velocity[Component], Velocity[Archetype]
         expectedkClassIndexSize += 1 // Add: Velocity[Component]
         expectedComponentIndexSize += 1 // Add: Velocity[Component]
-        expectedEntityIndexSize += 2 // Add: entity2, Velocity[Component] because now entity the entityId2 has a component to store in a row
+        expectedEntityIndexSize += 3 // Add: entity2, Velocity[Component] because now entity the entityId2 has a component to store in a row, Velocity[Archetype]
         checkCountersAndIndexes()
 
         assertTrue(world.hasComponent(entityId1, Position::class))
@@ -129,7 +129,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], Position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 2 // Add: entity, Position[Component] because now entityId1 the entity has a component to store in a row
+        expectedEntityIndexSize += 3 // Add: entity, Position[Archetype], Position[Component] because now entityId1 the entity has a component to store in a row
 
         world.setComponent(entityId, Position(1.0, 2.0))
         world.setComponent(entityId, Position(1.0, 3.0))
@@ -161,7 +161,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Position[Component], Position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 2 // Add: car, Position[Component] because now the car entity has a component to store in a row
+        expectedEntityIndexSize += 3 // Add: car, Position[Component] because now the car entity has a component to store in a row, Position[Archetype]
         checkCountersAndIndexes()
 
         world.addComponent(player, Position::class)
@@ -176,7 +176,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: Health[Component] Position,Health[Archetype] for the player entity
         expectedkClassIndexSize += 1 // Add: Health[MetaComponent]
         expectedComponentIndexSize += 1 // Add: Health[MetaComponent]
-        expectedEntityIndexSize += 1 // Add: Health[Component]
+        expectedEntityIndexSize += 2 // Add: Health[Component], Health[Archetype]
         checkCountersAndIndexes()
     }
 
