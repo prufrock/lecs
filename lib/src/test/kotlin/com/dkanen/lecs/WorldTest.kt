@@ -65,6 +65,7 @@ class WorldTest {
         expectedComponentIndexSize += 1 // Add: Position[Component]
         expectedEntityIndexSize += 3 // Add: entity(now that it has a component), position[Component], position[Archetype]
         checkCountersAndIndexes()
+        assertEquals(0, world.entityIndex[entityId]!!.row)
 
         val velocityId = world.addComponent(entityId, Velocity::class)
         expectedEntityCounter += 2 // Add: Velocity[Component] and Position,Velocity[Archetype]
@@ -75,6 +76,7 @@ class WorldTest {
 
         assertTrue(world.hasComponent(entityId, Position::class))
         assertTrue(world.hasComponent(entityId, Velocity::class))
+        assertEquals(0, world.entityIndex[entityId]!!.row)
 
         val archetypes = world.findArchetypes(Position::class)
         assertEquals(1, archetypes.size)

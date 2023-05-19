@@ -219,19 +219,14 @@ class World {
             val addArchetype = addToArchetype(archetype, componentId)
 
             // copy the component data from the old archetype to the new archetype
-            record.row?.let { row: Int ->
+            val newRow = record.row?.let { row: Int ->
                 moveEntity(archetype, row, addArchetype)
-            }
+            } ?: 0
 
             // update the record to point to the new archetype
             record.archetype = addArchetype
             // record needs to know where to find its components in the new archetype
-            // TODO: if I have 2 empty components they point to the same row, but they should point to different rows, especially when the array is sparse
-            record.row = if (addArchetype.components.isEmpty()) {
-                0
-            } else {
-                addArchetype.components.lastIndex + 1
-            }
+            record.row = newRow
             return record
         } else {
             // The Component already exists in the Archetype
@@ -317,8 +312,7 @@ class World {
         return entityIndex[rootEntity]?.archetype?.edges?.get(type.first())?.add
     }
 
-    private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype) {
-        archetype.components.elementAtOrNull(row)?.let { column: Column ->
+    private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype): RowId? = archetype.components.elementAtOrNull(row)?.let { column: Column ->
             val newColumns = mutableListOf<Any?>()
             // map the components from the old archetype to the new archetype
             // do it in addArchetype order so the list can expand from the left: [A], [A, B], [A, B, C]
@@ -332,8 +326,9 @@ class World {
             addArchetype.components.add(newColumns)
             // Remove the components from the old archetype
             archetype.components.removeAt(row)
+            // TODO: it would be nice not care so much about indexes, maybe use a hash map?
+            addArchetype.components.lastIndex
         }
-    }
 
     fun hasComponent(entityId: EntityId, component: KClass<*>): Boolean {
         val componentId = kClassIndex[component] ?: return false
