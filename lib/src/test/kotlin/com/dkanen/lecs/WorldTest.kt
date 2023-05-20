@@ -211,6 +211,26 @@ class WorldTest {
         assertEquals(2.0, world.getComponent<Position>(player, positionComponent)!!.x)
     }
 
+    @Test
+    fun ensureComponentsAreOrderedInArchetypes() {
+        val enemy = world.entity()
+        world.addComponent(enemy, Position::class)
+        world.addComponent(enemy, Velocity::class)
+
+        val player = world.entity()
+
+        // Set the components in a different order than they were created to ensure the Archetype has to re-order them.
+        val velocityComponent = world.addComponent(player, Velocity::class)
+        val positionComponent = world.addComponent(player, Position::class)
+
+        val archetype = world.archetypeFor(player)
+
+        assertEquals(world.archetypeFor(enemy), world.archetypeFor(player), "The two entities should be in the same archetype.")
+        assertEquals(2, archetype?.type?.count(), "The archetype should have 2 components.")
+        assertEquals(positionComponent, archetype?.type?.get(0), "The archetype should have the Position component first.")
+        assertEquals(velocityComponent, archetype?.type?.get(1), "The archetype should have the Velocity component second.")
+    }
+
     private fun setExpectInitialWorldValues() {
         expectedEntityCounter += 7 // rootEntity - 0, emptyArchetype - 1, MetaComponent[Component] - 4, MetaComponent[Archetype] - 5, MetaArchetype[Component] - 2, MetaArchetype[Archetype] - 3, MetaSystem[Component] - 6
         expectedkClassIndexSize += 2 // MetaComponent, MetaArchetype

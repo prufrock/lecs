@@ -272,7 +272,7 @@ class World {
     private fun addToArchetype(archetype: Archetype, componentId: ComponentId): Archetype {
         return archetype.edges[componentId]?.add ?: run {
             // With a new component, a different archetype is needed.
-            val newArchetype = createOrUpdateArchetype((archetype.type + componentId).toMutableList())
+            val newArchetype = createOrUpdateArchetype(archetype.type, componentId)
             // update the old archetype to provide a path to the new archetype
             if (archetype.edges[componentId] == null) {
                 archetype.edges[componentId] = ArchetypeEdge()
@@ -289,17 +289,9 @@ class World {
         }
     }
 
-    private fun createOrUpdateArchetype(type: Type): Archetype {
-        // find only the type=1 archetypes for now
-        return createOrUpdateSimpleArchetypes(type) ?: createArchetype(type)
-    }
-
-    private fun createOrUpdateSimpleArchetypes(type: Type): Archetype? {
-        return if (type.count() == 1) {
-            findArchetype(type)
-        } else {
-            null
-        }
+    private fun createOrUpdateArchetype(type: Type, component: ComponentId): Archetype {
+        val newType = (type + component).sorted().toMutableList()
+        return findArchetype(newType) ?: createArchetype(newType)
     }
 
     private fun createArchetype(type: Type): Archetype {
@@ -309,7 +301,11 @@ class World {
     }
 
     private fun findArchetype(type: Type): Archetype? {
-        return entityIndex[rootEntity]?.archetype?.edges?.get(type.first())?.add
+        var foundArchetype: Archetype? = null
+        type.forEach { componentId: ComponentId ->
+            foundArchetype = foundArchetype?.edges?.get(componentId)?.add ?: entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add
+        }
+        return foundArchetype
     }
 
     private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype): RowId? = archetype.components.elementAtOrNull(row)?.let { column: Column ->
@@ -361,5 +357,9 @@ class World {
             metaSystemEntity -> return "meta system entity"
             else -> return "unknown entity $entityId"
         }
+    }
+
+    fun archetypeFor(entity: EntityId): Archetype? {
+        return entityIndex[entity]?.archetype
     }
 }
