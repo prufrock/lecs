@@ -229,6 +229,8 @@ class WorldTest {
         assertEquals(2, archetype?.type?.count(), "The archetype should have 2 components.")
         assertEquals(positionComponent, archetype?.type?.get(0), "The archetype should have the Position component first.")
         assertEquals(velocityComponent, archetype?.type?.get(1), "The archetype should have the Velocity component second.")
+        assertEquals(4, archetype?.countComponents(), "The archetype should have 4 components.")
+        assertEquals(2, archetype?.countRows(), "The archetype should have 2 rows.")
     }
 
     private fun setExpectInitialWorldValues() {

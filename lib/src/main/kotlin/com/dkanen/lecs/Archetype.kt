@@ -12,7 +12,7 @@ size_t element_size; // size of a single element
 size_t count;        // number of elements
 }
  */
-typealias Column = MutableList<Any?>
+typealias Column = MutableList<Any?> //TODO: Shouldn't this be called a Row?
 
 class MetaArchetype(): Component
 
@@ -59,3 +59,52 @@ typealias RowId = Int
 
 data class ArchetypeRecord(val column: Int)
 typealias ArchetypeMap = MutableMap<ArchetypeId, ArchetypeRecord>
+
+/**
+ * Remove the row from the Archetype.
+ */
+fun Archetype.remove(row: RowId) = this.nullRow(row)
+
+/**
+ * Fill the row with nulls.
+ */
+fun Archetype.nullRow(row: RowId) {
+    this.components[row] = this.nullRow()
+}
+
+/**
+ * Create a row of nulls for this Archetype.
+ */
+fun Archetype.nullRow(): MutableList<Any?> = this.type.nullRow()
+
+/**
+ * Count the number of components in this Archetype.
+ */
+fun Archetype.countComponents(): Int = components.fold(0) { acc, row -> acc + row.size }
+
+/**
+ * Count the number of rows in this Archetype.
+ */
+fun Archetype.countRows(): Int = components.size
+
+fun Archetype.insert(row: Column): RowId? = components.insert(row)
+
+/**
+ * Create a row of nulls for this Type.
+ */
+fun Type.nullRow(): MutableList<Any?> = MutableList(this.size) { null }
+
+fun <T>MutableList<T>.insert(element: T): Int? {
+    val insertedAt = lastIndex + 1
+    return if (this.add(element)) {
+        insertedAt
+    } else {
+        null
+    }
+}
+
+fun <T>MutableList<T?>.fill(size: Int) {
+    for (i in count() until size) {
+        this.add(null)
+    }
+}

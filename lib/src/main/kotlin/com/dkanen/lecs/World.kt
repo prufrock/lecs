@@ -261,7 +261,7 @@ class World {
         // check if the archetype has the component
         if (!archetype.type.contains(component)) return null
 
-        // find the entities component
+        // find the entity's component
         @Suppress("UNCHECKED_CAST")
         record.row?.let {row ->
             return archetype.components[row][archetype.type.indexOf(component)] as T
@@ -309,22 +309,23 @@ class World {
     }
 
     private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype): RowId? = archetype.components.elementAtOrNull(row)?.let { column: Column ->
-            val newColumns = mutableListOf<Any?>()
-            // map the components from the old archetype to the new archetype
-            // do it in addArchetype order so the list can expand from the left: [A], [A, B], [A, B, C]
-            addArchetype.type.forEachIndexed { i: Int, addArchetypeComponentId: ComponentId ->
-                val index: Int = archetype.type.lastIndexOf(addArchetypeComponentId)
-                if (column.isNotEmpty() && index >= 0) {
-                    newColumns.add(column[index])
-                }
+        val newRow = mutableListOf<Any?>()
+        // map the components from the old archetype to the new archetype
+        // do it in addArchetype order so the list can expand from the left: [A], [A, B], [A, B, C]
+        addArchetype.type.forEachIndexed { i: Int, addArchetypeComponentId: ComponentId ->
+            val index: Int = archetype.type.lastIndexOf(addArchetypeComponentId)
+            if (column.isNotEmpty() && index >= 0) {
+                newRow.add(column[index])
             }
-            // Add the components to the new archetype
-            addArchetype.components.add(newColumns)
-            // Remove the components from the old archetype
-            archetype.components.removeAt(row)
-            // TODO: it would be nice not care so much about indexes, maybe use a hash map?
-            addArchetype.components.lastIndex
         }
+        // Make sure the new row has enough columns
+        //TODO: I think this can be changed so that the newRow is always the same size as the addArchetype.type then add the components
+        newRow.fill(addArchetype.type.count())
+        // Remove the components from the old archetype
+        archetype.remove(row)
+        // Add the components to the new archetype
+        addArchetype.insert(newRow)
+    }
 
     fun hasComponent(entityId: EntityId, component: KClass<*>): Boolean {
         val componentId = kClassIndex[component] ?: return false
