@@ -221,7 +221,7 @@ class World {
             // copy the component data from the old archetype to the new archetype
             val newRow = record.row?.let { row: Int ->
                 moveEntity(archetype, row, addArchetype)
-            } ?: 0
+            } ?: createEntity(addArchetype) //TODO: What to do if this returns null?
 
             // update the record to point to the new archetype
             record.archetype = addArchetype
@@ -236,6 +236,7 @@ class World {
             return record
         }
     }
+
 
     fun <T: Component> setComponent(entityId: EntityId, component: T) {
         val record: Record = entityIndex[entityId] ?: run {
@@ -325,6 +326,13 @@ class World {
         archetype.remove(row)
         // Add the components to the new archetype
         addArchetype.insert(newRow)
+    }
+
+    private fun createEntity(addArchetype: Archetype): RowId? {
+        val newRow = mutableListOf<Any?>()
+        newRow.fill(addArchetype.type.count())
+        // Add the components to the new archetype
+        return addArchetype.insert(newRow)
     }
 
     fun hasComponent(entityId: EntityId, component: KClass<*>): Boolean {

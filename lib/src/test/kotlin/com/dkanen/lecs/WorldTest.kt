@@ -51,6 +51,21 @@ class WorldTest {
     }
 
     @Test
+    fun addOneComponentToTwoDifferentEntities() {
+        val first = world.entity()
+        val second = world.entity()
+
+        val firstPosition = world.addComponent(first, Position::class)
+        world.setComponent(first, Position(1.0, 2.0))
+
+        val secondPosition = world.addComponent(second, Position::class)
+        world.setComponent(second, Position(3.0, 4.0))
+
+        assertEquals(1.0, world.getComponent(first, Position::class)!!.x)
+        assertEquals(3.0, world.getComponent(second, Position::class)!!.x)
+    }
+
+    @Test
     fun addTwoComponentsToAnEntity() {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
