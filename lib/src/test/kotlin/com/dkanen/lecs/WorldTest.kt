@@ -3,6 +3,8 @@ package com.dkanen.lecs
 import org.junit.jupiter.api.Assertions.*
 
 import org.junit.jupiter.api.Test
+import kotlin.random.Random
+import kotlin.system.measureTimeMillis
 
 class WorldTest {
     var world = World()
@@ -246,6 +248,44 @@ class WorldTest {
         assertEquals(velocityComponent, archetype?.type?.get(1), "The archetype should have the Velocity component second.")
         assertEquals(4, archetype?.countComponents(), "The archetype should have 4 components.")
         assertEquals(2, archetype?.countRows(), "The archetype should have 2 rows.")
+    }
+
+    /**
+     * Not vectorizing yet, do I need to use Arrays?
+     */
+    fun willItVectorize() {
+        val size = 1000000
+        val list = mutableListOf<Position>()
+
+        // fill a list with a million random integers
+        for (i in 0..size) {
+            list.add(Position(Random.nextDouble(), Random.nextDouble()))
+        }
+
+        // start a timer
+        val start = measureTimeMillis {
+            // add a random integer to each element in the list
+            for (i in 0..size) {
+                list[i].x += Random.nextDouble()
+            }
+        }
+        println("Time taken: $start")
+
+        var positionComponent: ComponentId? = null
+        for (i in 0..size) {
+            val entity = world.entity()
+            if (positionComponent == null) {
+                positionComponent = world.addComponent(entity, Position::class)
+            }
+            world.setComponent(entity, Position(Random.nextDouble(), Random.nextDouble()))
+        }
+
+        val systemId = world.addSystem(listOf(positionComponent!!)) { components ->
+            val position: Position = components[0] as Position
+            position.x += Random.nextDouble()
+        }
+        world.process(systemId)
+        println("done")
     }
 
     private fun setExpectInitialWorldValues() {

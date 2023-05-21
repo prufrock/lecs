@@ -1,6 +1,7 @@
 package com.dkanen.lecs
 
 import kotlin.reflect.KClass
+import kotlin.system.measureTimeMillis
 
 class World {
     var entityCounter = 0
@@ -191,15 +192,16 @@ class World {
     fun select(selector: List<ComponentId>): List<Component> {
         val componentId = selector.first()
 
-        val components: MutableList<Component> = mutableListOf()
+        val selected: MutableList<Component> = mutableListOf()
 
         entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add?.let { archetype: Archetype ->
-            archetype.components[archetype.type.indexOf(componentId)].forEach { component: Any? ->
-                components.add(component as Component)
+            val componentPosition = archetype.type.indexOf(componentId) //TODO: get the position of each select component
+            archetype.components.forEach { components: MutableList<Any?> ->
+                selected.add(components[componentPosition] as Component)
             }
         }
 
-        return components
+        return selected
     }
 
     fun process(systemId: SystemId) {
