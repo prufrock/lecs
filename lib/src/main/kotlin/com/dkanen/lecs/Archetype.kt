@@ -87,6 +87,7 @@ fun Archetype.countComponents(): Int = components.fold(0) { acc, row -> acc + ro
  */
 fun Archetype.countRows(): Int = components.size
 
+
 fun Archetype.insert(row: Column): RowId? = components.insert(row)
 
 /**

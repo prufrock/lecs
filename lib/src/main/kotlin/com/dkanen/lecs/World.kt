@@ -1,7 +1,6 @@
 package com.dkanen.lecs
 
 import kotlin.reflect.KClass
-import kotlin.system.measureTimeMillis
 
 class World {
     var entityCounter = 0
@@ -42,8 +41,8 @@ class World {
     val metaSystemEntity: EntityId
 
     init {
-        rootEntity = entity()
-        emptyArchetypeEntity = entity()
+        rootEntity = entityId()
+        emptyArchetypeEntity = entityId()
         val metaArchetypeIds = initEmptyArchetype()
         metaArchetypeEntity = metaArchetypeIds.first
         metaArchetypeArchetype = metaArchetypeIds.second
@@ -53,19 +52,17 @@ class World {
         addComponent(metaArchetypeEntity, MetaComponent::class)
         addComponent(metaArchetypeArchetype, MetaArchetype::class)
 
-        metaSystemEntity = entity()
+        metaSystemEntity = entityId()
         addComponent(metaSystemEntity, MetaComponent::class)
     }
 
-    fun entity(): EntityId {
-        return entityCounter++
-    }
+    fun entityId(): EntityId = entityCounter++
 
     private fun initEmptyArchetype(): Pair<ComponentId, ArchetypeId> {
         // The Component that tags an Archetype as an Archetype
-        val metaArchetypeId = entity()
+        val metaArchetypeId = entityId()
         // The Archetype that holds all the Archetypes, is also an Archetype so it's type is MetaArchetype
-        val metaArchetypeArchetype = Archetype(entity(), mutableListOf(metaArchetypeId), mutableListOf())
+        val metaArchetypeArchetype = Archetype(entityId(), mutableListOf(metaArchetypeId), mutableListOf())
         kClassIndex[MetaArchetype::class] = metaArchetypeId
 
         val archetype = Archetype(
@@ -86,14 +83,14 @@ class World {
      */
     fun addMetaComponent(component: KClass<*>): ComponentId {
         val componentId = kClassIndex[component] ?: run {
-            val id = entity()
+            val id = entityId()
             kClassIndex[component] = id
             id
         }
 
         var componentColumn: Int = 0
         // if there is no Record create one
-        if (entityIndex[componentId] == null) {
+        if (entityDoesNotExist(componentId)) {
             entityIndex[componentId] = Record(entityIndex[rootEntity]!!.archetype, row = 0)
         }
 
@@ -126,22 +123,13 @@ class World {
      * Post condition: the entity has the component
      */
     fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId {
-        // if the component has been seen before, use its id, otherwise create a new id and add it to the index
-        val componentId = kClassIndex[component] ?: run {
-            val id = entity()
-            kClassIndex[component] = id
-            addComponent(id, MetaComponent::class)
-            id
+        val componentId = findOrCreateComponent(component)
+
+        // TODO: Consider moving entity creation out of addComponent.
+        if (entityDoesNotExist(entityId)) {
+            createEntity(entityId)
         }
 
-        // if there is no Record create one
-        if (entityIndex[entityId] == null) {
-            // The row is null because the root entity has no components.
-            entityIndex[entityId] = Record(entityIndex[rootEntity]!!.archetype, row = null)
-        }
-
-        // If the entity has a record, add the component to the archetype if it doesn't already have it, otherwise
-        // create a new record with a new archetype.
         val record: Record = updateRecord(entityIndex[entityId]!!, componentId)
 
         // Add placeholder in the Archetype's components list for the new component.
@@ -178,8 +166,31 @@ class World {
         return componentId
     }
 
+    /**
+     * Creates the entity by putting it in the entity index.
+     * Uses the archetype of the root entity, since it's always the empty archetype.
+     * The row is null because the root entity never has components.
+     *
+     * Post condition: the entity exists in the entity index.
+     */
+    private fun createEntity(entityId: EntityId) {
+        entityIndex[entityId] = Record(entityIndex[rootEntity]!!.archetype, row = null)
+    }
+
+    private fun entityDoesNotExist(entityId: EntityId) = entityIndex[entityId] == null
+
+    /**
+     * If the component has been seen before, use its id, otherwise create a new id and add it to the index
+     */
+    private fun findOrCreateComponent(component: KClass<*>) = kClassIndex[component] ?: run {
+        val id = entityId()
+        kClassIndex[component] = id
+        addComponent(id, MetaComponent::class)
+        id
+    }
+
     fun addSystem(selector: List<ComponentId>, lamda: (List<Component>) -> Unit): SystemId {
-        val systemId = entity()
+        val systemId = entityId()
         addComponent(systemId, System::class)
         val system = System(selector, lamda)
         setComponent(systemId, system)
@@ -213,17 +224,25 @@ class World {
         }
     }
 
+    /**
+     * If the current archetype does not have the component:
+     *  1. Create a new archetype with the component.
+     *  2. Copy the components from the old archetype to the new archetype.
+     *  3. Update the record to point to the new archetype and row.
+     * If the current archetype does have the component:
+     *  1. Create a row for it in it's archetype.
+     *
+     *  Post condition: the record has a row in an archetype that has the component.
+     */
     private fun updateRecord(record: Record, componentId: ComponentId): Record {
-        // Check to see if the component is in the record's archetype by checking the component index.
-        // There could be an optimization where if the archetype is only used by this entity, then it can be modified in place.
-        if (componentIndex[componentId]?.get(record.archetype.id) == null) {
+        if (recordLacksComponent(record, componentId)) {
             val archetype = record.archetype
             val addArchetype = addToArchetype(archetype, componentId)
 
             // copy the component data from the old archetype to the new archetype
             val newRow = record.row?.let { row: Int ->
                 moveEntity(archetype, row, addArchetype)
-            } ?: createEntity(addArchetype) //TODO: What to do if this returns null?
+            } ?: createRow(addArchetype) ?: throw Exception("Failed to create entity")
 
             // update the record to point to the new archetype
             record.archetype = addArchetype
@@ -233,10 +252,19 @@ class World {
         } else {
             // The Component already exists in the Archetype
             // If the row is already set then we're attempting to add a component that already exists.
-            // If not then this is a new record and the row should be next available spot in the Archetype.
-            record.row = record.row ?: record.archetype.components.count()
+            // If not then this is a new record and the row should be the next available spot in the Archetype.
+            if (record.row == null) {
+                record.row = createRow(record.archetype) ?: throw Exception("Failed to create entity")
+            }
             return record
         }
+    }
+
+    /**
+     * Returns true if the record does not have the component, false otherwise.
+     */
+    private fun recordLacksComponent(record: Record, componentId: ComponentId): Boolean {
+        return componentIndex[componentId]?.get(record.archetype.id) == null
     }
 
 
@@ -275,20 +303,20 @@ class World {
     private fun addToArchetype(archetype: Archetype, componentId: ComponentId): Archetype {
         return archetype.edges[componentId]?.add ?: run {
             // With a new component, a different archetype is needed.
-            val newArchetype = createOrUpdateArchetype(archetype.type, componentId)
+            val destination = createOrUpdateArchetype(archetype.type, componentId)
             // update the old archetype to provide a path to the new archetype
             if (archetype.edges[componentId] == null) {
                 archetype.edges[componentId] = ArchetypeEdge()
             }
-            archetype.edges[componentId]!!.add = newArchetype
+            archetype.edges[componentId]!!.add = destination
 
             // update the new archetype to provide a path back to the old archetype
-            if (newArchetype.edges[componentId] == null) {
-                newArchetype.edges[componentId] = ArchetypeEdge()
+            if (destination.edges[componentId] == null) {
+                destination.edges[componentId] = ArchetypeEdge()
             }
-            newArchetype.edges[componentId]!!.remove = archetype
+            destination.edges[componentId]!!.remove = archetype
 
-            newArchetype
+            destination
         }
     }
 
@@ -298,7 +326,7 @@ class World {
     }
 
     private fun createArchetype(type: Type): Archetype {
-        val id = entity()
+        val id = entityId()
         addComponent(id, MetaArchetype::class)
         return Archetype(id, type, mutableListOf(), mutableMapOf())
     }
@@ -330,7 +358,7 @@ class World {
         addArchetype.insert(newRow)
     }
 
-    private fun createEntity(addArchetype: Archetype): RowId? {
+    private fun createRow(addArchetype: Archetype): RowId? {
         val newRow = mutableListOf<Any?>()
         newRow.fill(addArchetype.type.count())
         // Add the components to the new archetype

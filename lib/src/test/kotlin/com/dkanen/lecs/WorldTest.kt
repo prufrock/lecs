@@ -27,7 +27,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.entity()
+        val entityId = world.entityId()
         expectedEntityCounter += 1
         checkCountersAndIndexes()
 
@@ -54,8 +54,8 @@ class WorldTest {
 
     @Test
     fun addOneComponentToTwoDifferentEntities() {
-        val first = world.entity()
-        val second = world.entity()
+        val first = world.entityId()
+        val second = world.entityId()
 
         val firstPosition = world.addComponent(first, Position::class)
         world.setComponent(first, Position(1.0, 2.0))
@@ -72,7 +72,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.entity()
+        val entityId = world.entityId()
         expectedEntityCounter += 1 // add entity
         checkCountersAndIndexes()
 
@@ -104,7 +104,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId1 = world.entity()
+        val entityId1 = world.entityId()
         expectedEntityCounter += 1 // add entity
         checkCountersAndIndexes()
 
@@ -115,7 +115,7 @@ class WorldTest {
         expectedEntityIndexSize += 3 // Add: entity1, Position[Component] because now entityId1 has a component to store in a row, Position[Archetype]
         checkCountersAndIndexes()
 
-        val entityId2 = world.entity()
+        val entityId2 = world.entityId()
         expectedEntityCounter += 1 // add entity
         checkCountersAndIndexes()
 
@@ -140,7 +140,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.entity()
+        val entityId = world.entityId()
         expectedEntityCounter += 1 // add entity
         checkCountersAndIndexes()
 
@@ -168,11 +168,11 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val player = world.entity()
+        val player = world.entityId()
         expectedEntityCounter += 1 // add entity
         checkCountersAndIndexes()
 
-        val car = world.entity()
+        val car = world.entityId()
         expectedEntityCounter += 1 // add entity
         checkCountersAndIndexes()
 
@@ -201,7 +201,7 @@ class WorldTest {
 
     @Test
     fun setTwoComponentsOutOfOrder() {
-        val player = world.entity()
+        val player = world.entityId()
 
         world.addComponent(player, Position::class)
         world.addComponent(player, Velocity::class)
@@ -213,7 +213,7 @@ class WorldTest {
 
     @Test
     fun simpleSystem() {
-        val player = world.entity()
+        val player = world.entityId()
         val positionComponent = world.addComponent(player, Position::class)
 
         world.setComponent(player, Position(1.0, 3.0))
@@ -230,11 +230,11 @@ class WorldTest {
 
     @Test
     fun ensureComponentsAreOrderedInArchetypes() {
-        val enemy = world.entity()
+        val enemy = world.entityId()
         world.addComponent(enemy, Position::class)
         world.addComponent(enemy, Velocity::class)
 
-        val player = world.entity()
+        val player = world.entityId()
 
         // Set the components in a different order than they were created to ensure the Archetype has to re-order them.
         val velocityComponent = world.addComponent(player, Velocity::class)
@@ -263,7 +263,7 @@ class WorldTest {
         }
 
         // start a timer
-        val start = measureTimeMillis {
+        var start = measureTimeMillis {
             // add a random integer to each element in the list
             for (i in 0..size) {
                 list[i].x += Random.nextDouble()
@@ -273,7 +273,7 @@ class WorldTest {
 
         var positionComponent: ComponentId? = null
         for (i in 0..size) {
-            val entity = world.entity()
+            val entity = world.entityId()
             if (positionComponent == null) {
                 positionComponent = world.addComponent(entity, Position::class)
             }
