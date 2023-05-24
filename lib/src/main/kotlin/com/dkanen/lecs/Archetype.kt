@@ -12,7 +12,7 @@ size_t element_size; // size of a single element
 size_t count;        // number of elements
 }
  */
-typealias Column = MutableList<Any?> //TODO: Shouldn't this be called a Row?
+typealias Row = MutableList<Any?> //TODO: Shouldn't this be called a Row?
 
 class MetaArchetype(): Component
 
@@ -24,7 +24,7 @@ data class ArchetypeEdge(
 data class Archetype(
     val id: ArchetypeId,
     val type: Type,
-    val components: MutableList<Column>,
+    val rows: MutableList<Row>,
     /**
      *  This is a list of lists so this allows a vectorizable structure like this:
      *  [Velocity, Position]
@@ -44,11 +44,11 @@ data class Archetype(
         return id == other.id
     }
     override fun toString(): String = buildString {
-        append("Archetype(id=$id, type=$type, components=$components")
+        append("Archetype(id=$id, type=$type, components=$rows")
     }
 }
 
-data class Record(var archetype: Archetype, var row: RowId?) {
+data class Record(var archetype: Archetype, var row: RowId) {
     override fun toString(): String {
         return buildString {
             append("Record(archetype=${archetype}, row=$row)")
@@ -69,7 +69,7 @@ fun Archetype.remove(row: RowId) = this.nullRow(row)
  * Fill the row with nulls.
  */
 fun Archetype.nullRow(row: RowId) {
-    this.components[row] = this.nullRow()
+    this.rows[row] = this.nullRow()
 }
 
 /**
@@ -80,15 +80,17 @@ fun Archetype.nullRow(): MutableList<Any?> = this.type.nullRow()
 /**
  * Count the number of components in this Archetype.
  */
-fun Archetype.countComponents(): Int = components.fold(0) { acc, row -> acc + row.size }
+fun Archetype.countComponents(): Int = rows.fold(0) { acc, row -> acc + row.size }
 
 /**
  * Count the number of rows in this Archetype.
  */
-fun Archetype.countRows(): Int = components.size
+fun Archetype.countRows(): Int = rows.size
 
 
-fun Archetype.insert(row: Column): RowId? = components.insert(row)
+fun Archetype.insertOrFail(row: Row): RowId = rows.insert(row) ?: throw EntityAllocationException("Failed to create entity in archetype ${type} row: ${countRows()} components ${countComponents()}. More than likely the archetype is full.")
+
+fun Archetype.rowAtOrFail(rowId: RowId): Row = rows.elementAtOrNull(rowId) ?: throw EntityAllocationException("Failed to find row $rowId in archetype ${type} row: ${countRows()}. Was the row added or did it get removed?")
 
 /**
  * Create a row of nulls for this Type.
@@ -104,8 +106,11 @@ fun <T>MutableList<T>.insert(element: T): Int? {
     }
 }
 
-fun <T>MutableList<T?>.fill(size: Int) {
+fun <T>MutableList<T?>.ofNulls(size: Int) {
+    null
     for (i in count() until size) {
         this.add(null)
     }
 }
+
+class EntityAllocationException(message: String): Exception(message)

@@ -68,11 +68,11 @@ class World {
         val archetype = Archetype(
             id = emptyArchetypeEntity,
             type = mutableListOf(),
-            components = mutableListOf(),
+            rows = mutableListOf(mutableListOf(null), mutableListOf(null)), // root entity & empty archetype
             edges = mutableMapOf(Pair(metaArchetypeId, ArchetypeEdge(add = metaArchetypeArchetype)))
         )
-        entityIndex[rootEntity] = Record(archetype, null)
-        entityIndex[emptyArchetypeEntity] = Record(archetype, null)
+        entityIndex[rootEntity] = Record(archetype, 0)
+        entityIndex[emptyArchetypeEntity] = Record(archetype, 1)
 
         return Pair(metaArchetypeId, metaArchetypeArchetype.id)
     }
@@ -97,18 +97,18 @@ class World {
         // Create a record and either store the component in an existing archetype or create a new archetype
         val record: Record = updateRecord(entityIndex[componentId]!!, componentId)
 
-        // Add placeholder in the Archetype's components list for the new component.
-        if (record.archetype.components.lastIndex < record.row!!) {
+        // Add placeholder row in the Archetype for the new component.
+        if (record.archetype.rows.lastIndex < record.row!!) {
             // TODO: consider finding a way to set this when the row is assigned to the record.
-            record.archetype.components.add(mutableListOf())
+            record.archetype.rows.add(mutableListOf())
         }
 
         // Determine which column the component ends up in.
         componentColumn = record.archetype.type.indexOf(componentId)
 
         // Fill the row with nulls up to the current column.
-        while (record.archetype.components[record.row!!].lastIndex < componentColumn) {
-            record.archetype.components[record.row!!].add(null)
+        while (record.archetype.rows[record.row!!].lastIndex < componentColumn) {
+            record.archetype.rows[record.row!!].add(null)
         }
 
         entityIndex[componentId] = record
@@ -132,18 +132,18 @@ class World {
 
         val record: Record = updateRecord(entityIndex[entityId]!!, componentId)
 
-        // Add placeholder in the Archetype's components list for the new component.
-        if (record.archetype.components.lastIndex < record.row!!) {
+        // Add placeholder row in the Archetype the new component.
+        if (record.archetype.rows.lastIndex < record.row!!) {
             // TODO: consider finding a way to set this when the row is assigned to the record.
-            record.archetype.components.add(mutableListOf())
+            record.archetype.rows.add(mutableListOf())
         }
 
         // Determine which column the component ends up in.
         val componentColumn = record.archetype.type.indexOf(componentId)
 
         // Fill the row with nulls up to the current column.
-        while (record.archetype.components[record.row!!].lastIndex < componentColumn) {
-            record.archetype.components[record.row!!].add(null)
+        while (record.archetype.rows[record.row!!].lastIndex < componentColumn) {
+            record.archetype.rows[record.row!!].add(null)
         }
 
         entityIndex[entityId] = record
@@ -174,7 +174,9 @@ class World {
      * Post condition: the entity exists in the entity index.
      */
     private fun createEntity(entityId: EntityId) {
-        entityIndex[entityId] = Record(entityIndex[rootEntity]!!.archetype, row = null)
+        val archetype = entityIndex[rootEntity]!!.archetype
+        val row = archetype.insertOrFail(mutableListOf(null))
+        entityIndex[entityId] = Record(entityIndex[rootEntity]!!.archetype, row = row)
     }
 
     private fun entityDoesNotExist(entityId: EntityId) = entityIndex[entityId] == null
@@ -206,8 +208,8 @@ class World {
         val selected: MutableList<Component> = mutableListOf()
 
         entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add?.let { archetype: Archetype ->
-            val componentPosition = archetype.type.indexOf(componentId) //TODO: get the position of each select component
-            archetype.components.forEach { components: MutableList<Any?> ->
+            val componentPosition = archetype.type.indexOf(componentId) //TODO: get the position of each selected component
+            archetype.rows.forEach { components: MutableList<Any?> ->
                 selected.add(components[componentPosition] as Component)
             }
         }
@@ -230,31 +232,26 @@ class World {
      *  2. Copy the components from the old archetype to the new archetype.
      *  3. Update the record to point to the new archetype and row.
      * If the current archetype does have the component:
-     *  1. Create a row for it in it's archetype.
+     *  1. Create a row for it in its archetype.
      *
      *  Post condition: the record has a row in an archetype that has the component.
      */
     private fun updateRecord(record: Record, componentId: ComponentId): Record {
         if (recordLacksComponent(record, componentId)) {
-            val archetype = record.archetype
-            val addArchetype = addToArchetype(archetype, componentId)
+            val destinationArchetype = addToArchetype(record.archetype, componentId)
 
             // copy the component data from the old archetype to the new archetype
-            val newRow = record.row?.let { row: Int ->
-                moveEntity(archetype, row, addArchetype)
-            } ?: createRow(addArchetype) ?: throw Exception("Failed to create entity")
+            record.row = moveEntity(record.archetype, record.row, destinationArchetype)
 
             // update the record to point to the new archetype
-            record.archetype = addArchetype
-            // record needs to know where to find its components in the new archetype
-            record.row = newRow
+            record.archetype = destinationArchetype
             return record
         } else {
             // The Component already exists in the Archetype
             // If the row is already set then we're attempting to add a component that already exists.
             // If not then this is a new record and the row should be the next available spot in the Archetype.
             if (record.row == null) {
-                record.row = createRow(record.archetype) ?: throw Exception("Failed to create entity")
+                record.row = createRow(record.archetype)
             }
             return record
         }
@@ -275,9 +272,9 @@ class World {
         }
         val archetype: Archetype = record.archetype
         val columnId: Int = archetype.type.indexOf(kClassIndex[component::class]!!)
-        val row: Int = record.row ?: archetype.components[columnId].count()
+        val row: Int = record.row
 
-        archetype.components[row][columnId] = component
+        archetype.rows[row][columnId] = component
     }
 
     fun <T: Any> getComponent(entityId: EntityId, component: KClass<T>): T? {
@@ -295,7 +292,7 @@ class World {
         // find the entity's component
         @Suppress("UNCHECKED_CAST")
         record.row?.let {row ->
-            return archetype.components[row][archetype.type.indexOf(component)] as T
+            return archetype.rows[row][archetype.type.indexOf(component)] as T
         }
         return null
     }
@@ -339,30 +336,26 @@ class World {
         return foundArchetype
     }
 
-    private fun moveEntity(archetype: Archetype, row: Int, addArchetype: Archetype): RowId? = archetype.components.elementAtOrNull(row)?.let { column: Column ->
-        val newRow = mutableListOf<Any?>()
+    private fun moveEntity(srcArchetype: Archetype, srcRowId: Int, dstArchetype: Archetype): RowId = srcArchetype.rowAtOrFail(srcRowId).let { srcRow: Row ->
+        val dstRow = dstArchetype.nullRow()
         // map the components from the old archetype to the new archetype
         // do it in addArchetype order so the list can expand from the left: [A], [A, B], [A, B, C]
-        addArchetype.type.forEachIndexed { i: Int, addArchetypeComponentId: ComponentId ->
-            val index: Int = archetype.type.lastIndexOf(addArchetypeComponentId)
-            if (column.isNotEmpty() && index >= 0) {
-                newRow.add(column[index])
+        dstArchetype.type.forEachIndexed { i: Int, addArchetypeComponentId: ComponentId ->
+            val index: Int = srcArchetype.type.lastIndexOf(addArchetypeComponentId)
+            if (srcRow.isNotEmpty() && index >= 0) {
+                dstRow[i] = srcRow[index]
             }
         }
-        // Make sure the new row has enough columns
-        //TODO: I think this can be changed so that the newRow is always the same size as the addArchetype.type then add the components
-        newRow.fill(addArchetype.type.count())
         // Remove the components from the old archetype
-        archetype.remove(row)
+        srcArchetype.remove(srcRowId)
         // Add the components to the new archetype
-        addArchetype.insert(newRow)
+        dstArchetype.insertOrFail(dstRow)
     }
 
-    private fun createRow(addArchetype: Archetype): RowId? {
-        val newRow = mutableListOf<Any?>()
-        newRow.fill(addArchetype.type.count())
+    private fun createRow(addArchetype: Archetype): RowId {
+        val newRow = addArchetype.nullRow()
         // Add the components to the new archetype
-        return addArchetype.insert(newRow)
+        return addArchetype.insertOrFail(newRow)
     }
 
     fun hasComponent(entityId: EntityId, component: KClass<*>): Boolean {

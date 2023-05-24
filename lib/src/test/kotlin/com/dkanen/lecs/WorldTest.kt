@@ -33,9 +33,9 @@ class WorldTest {
 
         val positionId = world.addComponent(entityId, Position::class)
         assertTrue(world.hasComponent(positionId, MetaComponent::class))
-        assertEquals(1, world.entityIndex[entityId]!!.archetype.components.count())
+        assertEquals(1, world.entityIndex[entityId]!!.archetype.rows.count())
         world.addComponent(entityId, Position::class) // make sure adding the same component twice is idempotent
-        assertEquals(1, world.entityIndex[entityId]!!.archetype.components.count())
+        assertEquals(1, world.entityIndex[entityId]!!.archetype.rows.count())
         expectedEntityCounter += 2 // Add: position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: position[Component]
         expectedComponentIndexSize += 1 // Add: position[Component]
