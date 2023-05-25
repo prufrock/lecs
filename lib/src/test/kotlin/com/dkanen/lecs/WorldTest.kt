@@ -27,8 +27,9 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.entityId()
+        val entityId = world.createEntity()
         expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
         val positionId = world.addComponent(entityId, Position::class)
@@ -39,7 +40,7 @@ class WorldTest {
         expectedEntityCounter += 2 // Add: position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: position[Component]
         expectedComponentIndexSize += 1 // Add: position[Component]
-        expectedEntityIndexSize += 3 // Add: entity(now that it has a component), position[Component], position[Archetype]
+        expectedEntityIndexSize += 2 // position[Component], position[Archetype]
         checkCountersAndIndexes()
         assertTrue(world.entityIndex[world.rootEntity]!!.archetype.edges[positionId]?.add != null, "Position[Component] should be in the rootEntity's archetype.")
         assertTrue(world.hasComponent(entityId, Position::class))
@@ -54,8 +55,8 @@ class WorldTest {
 
     @Test
     fun addOneComponentToTwoDifferentEntities() {
-        val first = world.entityId()
-        val second = world.entityId()
+        val first = world.createEntity()
+        val second = world.createEntity()
 
         val firstPosition = world.addComponent(first, Position::class)
         world.setComponent(first, Position(1.0, 2.0))
@@ -72,15 +73,16 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.entityId()
-        expectedEntityCounter += 1 // add entity
+        val entityId = world.createEntity()
+        expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
         val positionId = world.addComponent(entityId, Position::class)
         expectedEntityCounter += 2 // Add: Position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 3 // Add: entity(now that it has a component), position[Component], position[Archetype]
+        expectedEntityIndexSize += 2 // Add: position[Component], position[Archetype]
         checkCountersAndIndexes()
         assertEquals(0, world.entityIndex[entityId]!!.row)
 
@@ -104,26 +106,28 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId1 = world.entityId()
-        expectedEntityCounter += 1 // add entity
+        val entityId1 = world.createEntity()
+        expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
         world.addComponent(entityId1, Position::class)
         expectedEntityCounter += 2 // Add: Position[Component], position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 3 // Add: entity1, Position[Component] because now entityId1 has a component to store in a row, Position[Archetype]
+        expectedEntityIndexSize += 2 // Add:Position[Component] because now entityId1 has a component to store in a row, Position[Archetype]
         checkCountersAndIndexes()
 
-        val entityId2 = world.entityId()
-        expectedEntityCounter += 1 // add entity
+        val entityId2 = world.createEntity()
+        expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
         world.addComponent(entityId2, Velocity::class)
         expectedEntityCounter += 2 // Add: Velocity[Component], Velocity[Archetype]
         expectedkClassIndexSize += 1 // Add: Velocity[Component]
         expectedComponentIndexSize += 1 // Add: Velocity[Component]
-        expectedEntityIndexSize += 3 // Add: entity2, Velocity[Component] because now entity the entityId2 has a component to store in a row, Velocity[Archetype]
+        expectedEntityIndexSize += 2 // Add: velocity[Component] because now entity the entityId2 has a component to store in a row, Velocity[Archetype]
         checkCountersAndIndexes()
 
         assertTrue(world.hasComponent(entityId1, Position::class))
@@ -140,15 +144,16 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.entityId()
-        expectedEntityCounter += 1 // add entity
+        val entityId = world.createEntity()
+        expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
         world.addComponent(entityId, Position::class)
         expectedEntityCounter += 2 // Add: Position[Component], Position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 3 // Add: entity, Position[Archetype], Position[Component] because now entityId1 the entity has a component to store in a row
+        expectedEntityIndexSize += 2 // Add: Position[Archetype], Position[Component] because now entityId1 the entity has a component to store in a row
 
         world.setComponent(entityId, Position(1.0, 2.0))
         world.setComponent(entityId, Position(1.0, 3.0))
@@ -168,26 +173,27 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val player = world.entityId()
-        expectedEntityCounter += 1 // add entity
+        val player = world.createEntity()
+        expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
-        val car = world.entityId()
-        expectedEntityCounter += 1 // add entity
+        val car = world.createEntity()
+        expectedEntityCounter += 1
+        expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
         val positionId = world.addComponent(car, Position::class)
         expectedEntityCounter += 2 // Add: Position[Component], Position[Archetype]
         expectedkClassIndexSize += 1 // Add: Position[Component]
         expectedComponentIndexSize += 1 // Add: Position[Component]
-        expectedEntityIndexSize += 3 // Add: car, Position[Component] because now the car entity has a component to store in a row, Position[Archetype]
+        expectedEntityIndexSize += 2 // Add: Position[Component] because now the car entity has a component to store in a row, Position[Archetype]
         checkCountersAndIndexes()
 
         world.addComponent(player, Position::class)
         expectedEntityCounter += 0 // no change since the existing Position[Component] is being reused
         expectedkClassIndexSize += 0 // no change because Position[MetaComponent] already exists
         expectedComponentIndexSize += 0 // no change because Position[MetaComponent] already exists
-        expectedEntityIndexSize += 1 // Add: Position[Component] for the player entity
         checkCountersAndIndexes()
         assertEquals(1, world.componentIndex[positionId]?.count(), "Position[Component] should only 1 archetype.")
 
@@ -201,7 +207,7 @@ class WorldTest {
 
     @Test
     fun setTwoComponentsOutOfOrder() {
-        val player = world.entityId()
+        val player = world.createEntity()
 
         world.addComponent(player, Position::class)
         world.addComponent(player, Velocity::class)
@@ -213,7 +219,7 @@ class WorldTest {
 
     @Test
     fun simpleSystem() {
-        val player = world.entityId()
+        val player = world.createEntity()
         val positionComponent = world.addComponent(player, Position::class)
 
         world.setComponent(player, Position(1.0, 3.0))
@@ -230,11 +236,11 @@ class WorldTest {
 
     @Test
     fun ensureComponentsAreOrderedInArchetypes() {
-        val enemy = world.entityId()
+        val enemy = world.createEntity()
         world.addComponent(enemy, Position::class)
         world.addComponent(enemy, Velocity::class)
 
-        val player = world.entityId()
+        val player = world.createEntity()
 
         // Set the components in a different order than they were created to ensure the Archetype has to re-order them.
         val velocityComponent = world.addComponent(player, Velocity::class)
@@ -273,7 +279,7 @@ class WorldTest {
 
         var positionComponent: ComponentId? = null
         for (i in 0..size) {
-            val entity = world.entityId()
+            val entity = world.createEntity()
             if (positionComponent == null) {
                 positionComponent = world.addComponent(entity, Position::class)
             }

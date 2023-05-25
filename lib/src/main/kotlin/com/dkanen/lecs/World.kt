@@ -52,11 +52,11 @@ class World {
         addComponent(metaArchetypeEntity, MetaComponent::class)
         addComponent(metaArchetypeArchetype, MetaArchetype::class)
 
-        metaSystemEntity = entityId()
+        metaSystemEntity = createEntity()
         addComponent(metaSystemEntity, MetaComponent::class)
     }
 
-    fun entityId(): EntityId = entityCounter++
+    private fun entityId(): EntityId = entityCounter++
 
     private fun initEmptyArchetype(): Pair<ComponentId, ArchetypeId> {
         // The Component that tags an Archetype as an Archetype
@@ -73,6 +73,8 @@ class World {
         )
         entityIndex[rootEntity] = Record(archetype, 0)
         entityIndex[emptyArchetypeEntity] = Record(archetype, 1)
+        entityIndex[metaArchetypeId] = Record(archetype, 2)
+        entityIndex[metaArchetypeArchetype.id] = Record(archetype, 3)
 
         return Pair(metaArchetypeId, metaArchetypeArchetype.id)
     }
@@ -81,9 +83,9 @@ class World {
      * Creates 2 entities, one for the component and one for the archetype
      * Post condition: the component exists as an entity
      */
-    fun addMetaComponent(component: KClass<*>): ComponentId {
+    private fun addMetaComponent(component: KClass<*>): ComponentId {
         val componentId = kClassIndex[component] ?: run {
-            val id = entityId()
+            val id = createEntity()
             kClassIndex[component] = id
             id
         }
@@ -96,12 +98,6 @@ class World {
 
         // Create a record and either store the component in an existing archetype or create a new archetype
         val record: Record = updateRecord(entityIndex[componentId]!!, componentId)
-
-        // Add placeholder row in the Archetype for the new component.
-        if (record.archetype.rows.lastIndex < record.row!!) {
-            // TODO: consider finding a way to set this when the row is assigned to the record.
-            record.archetype.rows.add(mutableListOf())
-        }
 
         // Determine which column the component ends up in.
         componentColumn = record.archetype.type.indexOf(componentId)
@@ -125,18 +121,7 @@ class World {
     fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId {
         val componentId = findOrCreateComponent(component)
 
-        // TODO: Consider moving entity creation out of addComponent.
-        if (entityDoesNotExist(entityId)) {
-            createEntity(entityId)
-        }
-
         val record: Record = updateRecord(entityIndex[entityId]!!, componentId)
-
-        // Add placeholder row in the Archetype the new component.
-        if (record.archetype.rows.lastIndex < record.row!!) {
-            // TODO: consider finding a way to set this when the row is assigned to the record.
-            record.archetype.rows.add(mutableListOf())
-        }
 
         // Determine which column the component ends up in.
         val componentColumn = record.archetype.type.indexOf(componentId)
@@ -166,6 +151,8 @@ class World {
         return componentId
     }
 
+    fun createEntity(archetype: Archetype = emptyArchetype()): EntityId = createEntity(entityId(), archetype)
+
     /**
      * Creates the entity by putting it in the entity index.
      * Uses the archetype of the root entity, since it's always the empty archetype.
@@ -173,10 +160,15 @@ class World {
      *
      * Post condition: the entity exists in the entity index.
      */
-    private fun createEntity(entityId: EntityId) {
-        val archetype = entityIndex[rootEntity]!!.archetype
-        val row = archetype.insertOrFail(mutableListOf(null))
-        entityIndex[entityId] = Record(entityIndex[rootEntity]!!.archetype, row = row)
+    private fun createEntity(entityId: EntityId, archetype: Archetype = emptyArchetype()): EntityId {
+        // All entities start out in the empty Archetype. Then by maintaining the list of add edges on the for each
+        // component on the empty, it's always possible to find a path to the first component added.
+        entityIndex[entityId] = Record(archetype, row = archetype.createEmptyRow())
+        return entityId
+    }
+
+    private fun emptyArchetype(): Archetype {
+        return entityIndex[rootEntity]!!.archetype
     }
 
     private fun entityDoesNotExist(entityId: EntityId) = entityIndex[entityId] == null
@@ -185,14 +177,14 @@ class World {
      * If the component has been seen before, use its id, otherwise create a new id and add it to the index
      */
     private fun findOrCreateComponent(component: KClass<*>) = kClassIndex[component] ?: run {
-        val id = entityId()
+        val id = createEntity()
         kClassIndex[component] = id
         addComponent(id, MetaComponent::class)
         id
     }
 
     fun addSystem(selector: List<ComponentId>, lamda: (List<Component>) -> Unit): SystemId {
-        val systemId = entityId()
+        val systemId = createEntity()
         addComponent(systemId, System::class)
         val system = System(selector, lamda)
         setComponent(systemId, system)
@@ -323,7 +315,7 @@ class World {
     }
 
     private fun createArchetype(type: Type): Archetype {
-        val id = entityId()
+        val id = createEntity()
         addComponent(id, MetaArchetype::class)
         return Archetype(id, type, mutableListOf(), mutableMapOf())
     }

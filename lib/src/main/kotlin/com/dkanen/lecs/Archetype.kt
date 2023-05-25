@@ -77,6 +77,11 @@ fun Archetype.nullRow(row: RowId) {
  */
 fun Archetype.nullRow(): MutableList<Any?> = this.type.nullRow()
 
+fun Archetype.createEmptyRow(): RowId {
+    val row = this.nullRow()
+    return this.insertOrFail(row)
+}
+
 /**
  * Count the number of components in this Archetype.
  */
