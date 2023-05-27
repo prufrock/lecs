@@ -90,26 +90,25 @@ class World {
             id
         }
 
-        var componentColumn: Int = 0
         // if there is no Record create one
         if (entityDoesNotExist(componentId)) {
             entityIndex[componentId] = Entity(entityIndex[rootEntity]!!.archetype, row = 0)
         }
 
         // Create a record and either store the component in an existing archetype or create a new archetype
-        val entity: Entity = updateRecord(entityIndex[componentId]!!, componentId)
+        val entity: Entity = updateEntity(entityIndex[componentId]!!, componentId)
 
         // Determine which column the component ends up in.
-        componentColumn = entity.archetype.type.indexOf(componentId)
+        val componentColumn = entity.archetype.type.indexOf(componentId)
 
         // Fill the row with nulls up to the current column.
-        while (entity.archetype.rows[entity.row!!].lastIndex < componentColumn) {
-            entity.archetype.rows[entity.row!!].add(null)
+        while (entity.archetype.rows[entity.row].lastIndex < componentColumn) {
+            entity.archetype.rows[entity.row].add(null)
         }
 
         entityIndex[componentId] = entity
-        componentIndex[componentId]?.set(entity.archetype.id, ArchetypeRecord(componentColumn!!)) ?: run {
-            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn!!))
+        componentIndex[componentId]?.set(entity.archetype.id, ArchetypeRecord(componentColumn)) ?: run {
+            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn))
         }
 
         return componentId
@@ -121,23 +120,18 @@ class World {
     fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId {
         val componentId = findOrCreateComponent(component)
 
-        val entity: Entity = updateRecord(entityIndex[entityId]!!, componentId)
+        val entity: Entity = updateEntity(entityIndex[entityId]!!, componentId)
+        entityIndex[entityId] = entity
 
+        // Update the component index
         // Determine which column the component ends up in.
         val componentColumn = entity.archetype.type.indexOf(componentId)
 
-        // Fill the row with nulls up to the current column.
-        while (entity.archetype.rows[entity.row!!].lastIndex < componentColumn) {
-            entity.archetype.rows[entity.row!!].add(null)
-        }
-
-        entityIndex[entityId] = entity
-
         // Update the component index so the column of a component in an archetype can be found quickly.
         componentIndex[componentId]?.let { archetypeMap: ArchetypeMap ->
-            componentIndex[componentId]?.set(entity.archetype.id, ArchetypeRecord(componentColumn!!))
+            archetypeMap[entity.archetype.id] = ArchetypeRecord(componentColumn)
         } ?: run {
-            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn!!))
+            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn))
         }
 
         entity.archetype.type.forEachIndexed { i: Int, component: ComponentId ->
@@ -228,8 +222,8 @@ class World {
      *
      *  Post condition: the record has a row in an archetype that has the component.
      */
-    private fun updateRecord(entity: Entity, componentId: ComponentId): Entity {
-        if (recordLacksComponent(entity, componentId)) {
+    private fun updateEntity(entity: Entity, componentId: ComponentId): Entity {
+        return if (recordLacksComponent(entity, componentId)) {
             val destinationArchetype = addToArchetype(entity.archetype, componentId)
 
             // copy the component data from the old archetype to the new archetype
@@ -237,15 +231,12 @@ class World {
 
             // update the record to point to the new archetype
             entity.archetype = destinationArchetype
-            return entity
+            entity
         } else {
             // The Component already exists in the Archetype
             // If the row is already set then we're attempting to add a component that already exists.
             // If not then this is a new record and the row should be the next available spot in the Archetype.
-            if (entity.row == null) {
-                entity.row = createRow(entity.archetype)
-            }
-            return entity
+            entity
         }
     }
 
