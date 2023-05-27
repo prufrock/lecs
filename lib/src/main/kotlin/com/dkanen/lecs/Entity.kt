@@ -2,5 +2,10 @@ package com.dkanen.lecs
 
 typealias EntityId = Int
 
-class Entity {
+data class Entity(var archetype: Archetype, var row: RowId) {
+    override fun toString(): String {
+        return buildString {
+            append("Record(archetype=${archetype}, row=$row)")
+        }
+    }
 }

@@ -5,7 +5,7 @@ import kotlin.reflect.KClass
 class World {
     var entityCounter = 0
     // Quickly find an entity's archetype
-    val entityIndex = mutableMapOf<EntityId, Record>()
+    val entityIndex = mutableMapOf<EntityId, Entity>()
     // Quickly look up the id of a component by its class
     val kClassIndex = mutableMapOf<KClass<*>, ComponentId>()
     // There are fewer components than archetypes, since archetypes are combinations of components, so index by component
@@ -71,10 +71,10 @@ class World {
             rows = mutableListOf(mutableListOf(null), mutableListOf(null)), // root entity & empty archetype
             edges = mutableMapOf(Pair(metaArchetypeId, ArchetypeEdge(add = metaArchetypeArchetype)))
         )
-        entityIndex[rootEntity] = Record(archetype, 0)
-        entityIndex[emptyArchetypeEntity] = Record(archetype, 1)
-        entityIndex[metaArchetypeId] = Record(archetype, 2)
-        entityIndex[metaArchetypeArchetype.id] = Record(archetype, 3)
+        entityIndex[rootEntity] = Entity(archetype, 0)
+        entityIndex[emptyArchetypeEntity] = Entity(archetype, 1)
+        entityIndex[metaArchetypeId] = Entity(archetype, 2)
+        entityIndex[metaArchetypeArchetype.id] = Entity(archetype, 3)
 
         return Pair(metaArchetypeId, metaArchetypeArchetype.id)
     }
@@ -93,23 +93,23 @@ class World {
         var componentColumn: Int = 0
         // if there is no Record create one
         if (entityDoesNotExist(componentId)) {
-            entityIndex[componentId] = Record(entityIndex[rootEntity]!!.archetype, row = 0)
+            entityIndex[componentId] = Entity(entityIndex[rootEntity]!!.archetype, row = 0)
         }
 
         // Create a record and either store the component in an existing archetype or create a new archetype
-        val record: Record = updateRecord(entityIndex[componentId]!!, componentId)
+        val entity: Entity = updateRecord(entityIndex[componentId]!!, componentId)
 
         // Determine which column the component ends up in.
-        componentColumn = record.archetype.type.indexOf(componentId)
+        componentColumn = entity.archetype.type.indexOf(componentId)
 
         // Fill the row with nulls up to the current column.
-        while (record.archetype.rows[record.row!!].lastIndex < componentColumn) {
-            record.archetype.rows[record.row!!].add(null)
+        while (entity.archetype.rows[entity.row!!].lastIndex < componentColumn) {
+            entity.archetype.rows[entity.row!!].add(null)
         }
 
-        entityIndex[componentId] = record
-        componentIndex[componentId]?.set(record.archetype.id, ArchetypeRecord(componentColumn!!)) ?: run {
-            componentIndex[componentId] = mutableMapOf(record.archetype.id to ArchetypeRecord(componentColumn!!))
+        entityIndex[componentId] = entity
+        componentIndex[componentId]?.set(entity.archetype.id, ArchetypeRecord(componentColumn!!)) ?: run {
+            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn!!))
         }
 
         return componentId
@@ -121,31 +121,31 @@ class World {
     fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId {
         val componentId = findOrCreateComponent(component)
 
-        val record: Record = updateRecord(entityIndex[entityId]!!, componentId)
+        val entity: Entity = updateRecord(entityIndex[entityId]!!, componentId)
 
         // Determine which column the component ends up in.
-        val componentColumn = record.archetype.type.indexOf(componentId)
+        val componentColumn = entity.archetype.type.indexOf(componentId)
 
         // Fill the row with nulls up to the current column.
-        while (record.archetype.rows[record.row!!].lastIndex < componentColumn) {
-            record.archetype.rows[record.row!!].add(null)
+        while (entity.archetype.rows[entity.row!!].lastIndex < componentColumn) {
+            entity.archetype.rows[entity.row!!].add(null)
         }
 
-        entityIndex[entityId] = record
+        entityIndex[entityId] = entity
 
         // Update the component index so the column of a component in an archetype can be found quickly.
         componentIndex[componentId]?.let { archetypeMap: ArchetypeMap ->
-            componentIndex[componentId]?.set(record.archetype.id, ArchetypeRecord(componentColumn!!))
+            componentIndex[componentId]?.set(entity.archetype.id, ArchetypeRecord(componentColumn!!))
         } ?: run {
-            componentIndex[componentId] = mutableMapOf(record.archetype.id to ArchetypeRecord(componentColumn!!))
+            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn!!))
         }
 
-        record.archetype.type.forEachIndexed { i: Int, component: ComponentId ->
+        entity.archetype.type.forEachIndexed { i: Int, component: ComponentId ->
             if (componentIndex[component] == null) {
                 componentIndex[component] = mutableMapOf()
             }
             componentIndex[component]?.let { archetypeMap: ArchetypeMap ->
-                archetypeMap[record.archetype.id] = ArchetypeRecord(i)
+                archetypeMap[entity.archetype.id] = ArchetypeRecord(i)
             }
         }
         return componentId
@@ -163,7 +163,7 @@ class World {
     private fun createEntity(entityId: EntityId, archetype: Archetype = emptyArchetype()): EntityId {
         // All entities start out in the empty Archetype. Then by maintaining the list of add edges on the for each
         // component on the empty, it's always possible to find a path to the first component added.
-        entityIndex[entityId] = Record(archetype, row = archetype.createEmptyRow())
+        entityIndex[entityId] = Entity(archetype, row = archetype.createEmptyRow())
         return entityId
     }
 
@@ -228,43 +228,43 @@ class World {
      *
      *  Post condition: the record has a row in an archetype that has the component.
      */
-    private fun updateRecord(record: Record, componentId: ComponentId): Record {
-        if (recordLacksComponent(record, componentId)) {
-            val destinationArchetype = addToArchetype(record.archetype, componentId)
+    private fun updateRecord(entity: Entity, componentId: ComponentId): Entity {
+        if (recordLacksComponent(entity, componentId)) {
+            val destinationArchetype = addToArchetype(entity.archetype, componentId)
 
             // copy the component data from the old archetype to the new archetype
-            record.row = moveEntity(record.archetype, record.row, destinationArchetype)
+            entity.row = moveEntity(entity.archetype, entity.row, destinationArchetype)
 
             // update the record to point to the new archetype
-            record.archetype = destinationArchetype
-            return record
+            entity.archetype = destinationArchetype
+            return entity
         } else {
             // The Component already exists in the Archetype
             // If the row is already set then we're attempting to add a component that already exists.
             // If not then this is a new record and the row should be the next available spot in the Archetype.
-            if (record.row == null) {
-                record.row = createRow(record.archetype)
+            if (entity.row == null) {
+                entity.row = createRow(entity.archetype)
             }
-            return record
+            return entity
         }
     }
 
     /**
      * Returns true if the record does not have the component, false otherwise.
      */
-    private fun recordLacksComponent(record: Record, componentId: ComponentId): Boolean {
-        return componentIndex[componentId]?.get(record.archetype.id) == null
+    private fun recordLacksComponent(entity: Entity, componentId: ComponentId): Boolean {
+        return componentIndex[componentId]?.get(entity.archetype.id) == null
     }
 
 
     fun <T: Component> setComponent(entityId: EntityId, component: T) {
-        val record: Record = entityIndex[entityId] ?: run {
+        val entity: Entity = entityIndex[entityId] ?: run {
             addComponent(entityId, component::class)
             entityIndex[entityId]!!
         }
-        val archetype: Archetype = record.archetype
+        val archetype: Archetype = entity.archetype
         val columnId: Int = archetype.type.indexOf(kClassIndex[component::class]!!)
-        val row: Int = record.row
+        val row: Int = entity.row
 
         archetype.rows[row][columnId] = component
     }
@@ -275,15 +275,15 @@ class World {
     }
 
     fun <T> getComponent(entityId: EntityId, component: ComponentId): T? {
-        val record: Record = entityIndex[entityId] ?: return null
-        val archetype: Archetype = record.archetype
+        val entity: Entity = entityIndex[entityId] ?: return null
+        val archetype: Archetype = entity.archetype
 
         // check if the archetype has the component
         if (!archetype.type.contains(component)) return null
 
         // find the entity's component
         @Suppress("UNCHECKED_CAST")
-        record.row?.let {row ->
+        entity.row?.let { row ->
             return archetype.rows[row][archetype.type.indexOf(component)] as T
         }
         return null
@@ -356,9 +356,9 @@ class World {
     }
 
     fun hasComponent(entityId: EntityId, componentId: ComponentId): Boolean {
-        val record: Record = entityIndex[entityId] ?: return false
+        val entity: Entity = entityIndex[entityId] ?: return false
         val archetypeMap: ArchetypeMap = componentIndex[componentId] ?: return false
-        return archetypeMap[record.archetype.id] != null
+        return archetypeMap[entity.archetype.id] != null
     }
 
     fun findArchetypes(component: KClass<*>): List<ArchetypeId> {
@@ -369,7 +369,7 @@ class World {
     fun findArchetypes(componentId: ComponentId): List<ArchetypeId> {
         val archetypeMap: ArchetypeMap = componentIndex[componentId] ?: return emptyList()
         //TODO: create an archetype index to speed this up
-        return entityIndex.toList().filter { (_, record: Record) -> archetypeMap[record.archetype.id] != null }.map { it.first }
+        return entityIndex.toList().filter { (_, entity: Entity) -> archetypeMap[entity.archetype.id] != null }.map { it.first }
     }
 
     fun identify(entityId: EntityId): String {

@@ -48,13 +48,6 @@ data class Archetype(
     }
 }
 
-data class Record(var archetype: Archetype, var row: RowId) {
-    override fun toString(): String {
-        return buildString {
-            append("Record(archetype=${archetype}, row=$row)")
-        }
-    }
-}
 typealias RowId = Int
 
 data class ArchetypeRecord(val column: Int)
