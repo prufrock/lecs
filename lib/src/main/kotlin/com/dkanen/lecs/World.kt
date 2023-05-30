@@ -49,7 +49,7 @@ class World {
         metaArchetypeEntity = metaArchetypeIds.first
         metaArchetypeArchetype = metaArchetypeIds.second
 
-        metaComponentEntity = addMetaComponent(MetaComponent::class)
+        metaComponentEntity = createMetaComponent(MetaComponent::class)
 
         addComponent(metaArchetypeEntity, MetaComponent::class)
         addComponent(metaArchetypeArchetype, MetaArchetype::class)
@@ -85,43 +85,16 @@ class World {
      * Creates 2 entities, one for the component and one for the archetype
      * Post condition: the component exists as an entity
      */
-    private fun addMetaComponent(component: KClass<*>): ComponentId {
-        val componentId = kClassIndex[component] ?: run {
-            val id = createEntity()
-            kClassIndex[component] = id
-            id
-        }
-
-        // if there is no Record create one
-        if (entityDoesNotExist(componentId)) {
-            entityIndex[componentId] = Entity(entityIndex[rootEntity]!!.archetype, row = 0)
-        }
-
-        // Create a record and either store the component in an existing archetype or create a new archetype
-        val entity: Entity = addComponentToEntity(entityIndex[componentId]!!, componentId)
-
-        // Determine which column the component ends up in.
-        val componentColumn = entity.archetype.type.indexOf(componentId)
-
-        // Fill the row with nulls up to the current column.
-        while (entity.archetype.rows[entity.row].lastIndex < componentColumn) {
-            entity.archetype.rows[entity.row].add(null)
-        }
-
-        entityIndex[componentId] = entity
-        componentIndex[componentId]?.set(entity.archetype.id, ArchetypeRecord(componentColumn)) ?: run {
-            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn))
-        }
-
-        return componentId
-    }
+    private fun createMetaComponent(component: KClass<*>): ComponentId = findOrCreateComponent(component).let { storeComponent(it, it) }
 
     /**
      * Post condition: the entity has the component
      */
-    fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId {
-        val componentId: ComponentId = findOrCreateComponent(component)
+    fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId = storeComponent(entityId, findOrCreateComponent(component))
 
+    fun createEntity(archetype: Archetype = emptyArchetype()): EntityId = createEntity(entityId(), archetype)
+
+    private fun storeComponent(entityId: EntityId, componentId: ComponentId): ComponentId {
         entityIndex[entityId]?.let {
             addComponentToEntity(it, componentId)
             updateComponentIndex(componentId, it.archetype)
@@ -129,8 +102,6 @@ class World {
 
         return componentId
     }
-
-    fun createEntity(archetype: Archetype = emptyArchetype()): EntityId = createEntity(entityId(), archetype)
 
     /**
      * Currently, this iterates over every component even if the component is already indexed.
