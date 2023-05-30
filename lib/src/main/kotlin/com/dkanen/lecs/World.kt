@@ -8,6 +8,8 @@ class World {
     val entityIndex = mutableMapOf<EntityId, Entity>()
     // Quickly look up the id of a component by its class
     val kClassIndex = mutableMapOf<KClass<*>, ComponentId>()
+
+    // Allows World to quickly determine if a component is in an archetype and where it is.
     // There are fewer components than archetypes, since archetypes are combinations of components, so index by component
     val componentIndex = mutableMapOf<ComponentId, ArchetypeMap>()
 
@@ -96,7 +98,7 @@ class World {
         }
 
         // Create a record and either store the component in an existing archetype or create a new archetype
-        val entity: Entity = updateEntity(entityIndex[componentId]!!, componentId)
+        val entity: Entity = addComponentToEntity(entityIndex[componentId]!!, componentId)
 
         // Determine which column the component ends up in.
         val componentColumn = entity.archetype.type.indexOf(componentId)
@@ -118,34 +120,33 @@ class World {
      * Post condition: the entity has the component
      */
     fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId {
-        val componentId = findOrCreateComponent(component)
+        val componentId: ComponentId = findOrCreateComponent(component)
 
-        val entity: Entity = updateEntity(entityIndex[entityId]!!, componentId)
-        entityIndex[entityId] = entity
+        entityIndex[entityId]?.let {
+            addComponentToEntity(it, componentId)
+            updateComponentIndex(componentId, it.archetype)
+        } ?: throw EntityNotFoundException(entityId)
 
-        // Update the component index
-        // Determine which column the component ends up in.
-        val componentColumn = entity.archetype.type.indexOf(componentId)
-
-        // Update the component index so the column of a component in an archetype can be found quickly.
-        componentIndex[componentId]?.let { archetypeMap: ArchetypeMap ->
-            archetypeMap[entity.archetype.id] = ArchetypeRecord(componentColumn)
-        } ?: run {
-            componentIndex[componentId] = mutableMapOf(entity.archetype.id to ArchetypeRecord(componentColumn))
-        }
-
-        entity.archetype.type.forEachIndexed { i: Int, component: ComponentId ->
-            if (componentIndex[component] == null) {
-                componentIndex[component] = mutableMapOf()
-            }
-            componentIndex[component]?.let { archetypeMap: ArchetypeMap ->
-                archetypeMap[entity.archetype.id] = ArchetypeRecord(i)
-            }
-        }
         return componentId
     }
 
     fun createEntity(archetype: Archetype = emptyArchetype()): EntityId = createEntity(entityId(), archetype)
+
+    /**
+     * Currently, this iterates over every component even if the component is already indexed.
+     *
+     * Post condition: each component in the archetype has it's column stored in the index
+     */
+    private fun updateComponentIndex(componentId: ComponentId, archetype: Archetype) {
+        // If the archetype id is not in the component index, then it's safe to assume all the components in the archetype have been indexed.
+        if (componentIndex[componentId]?.get(archetype.id) != null) {
+            return
+        }
+
+        archetype.type.forEachIndexed { i: Int, indexedComponent: ComponentId ->
+            componentIndex.getOrPut(indexedComponent) { mutableMapOf() }[archetype.id] = ArchetypeRecord(i)
+        }
+    }
 
     /**
      * Creates the entity by putting it in the entity index.
@@ -222,7 +223,7 @@ class World {
      *
      *  Post condition: the record has a row in an archetype that has the component.
      */
-    private fun updateEntity(entity: Entity, componentId: ComponentId): Entity {
+    private fun addComponentToEntity(entity: Entity, componentId: ComponentId): Entity {
         return if (recordLacksComponent(entity, componentId)) {
             val destinationArchetype = addToArchetype(entity.archetype, componentId)
 

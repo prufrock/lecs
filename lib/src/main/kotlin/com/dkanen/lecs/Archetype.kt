@@ -91,6 +91,11 @@ fun Archetype.insertOrFail(row: Row): RowId = rows.insert(row) ?: throw EntityAl
 fun Archetype.rowAtOrFail(rowId: RowId): Row = rows.elementAtOrNull(rowId) ?: throw EntityAllocationException("Failed to find row $rowId in archetype ${type} row: ${countRows()}. Was the row added or did it get removed?")
 
 /**
+ * Find the index of a component in this Archetype.
+ */
+fun Archetype.indexOfComponent(componentId: ComponentId): Int = type.indexOf(componentId)
+
+/**
  * Create a row of nulls for this Type.
  */
 fun Type.nullRow(): MutableList<Any?> = MutableList(this.size) { null }
@@ -112,3 +117,7 @@ fun <T>MutableList<T?>.ofNulls(size: Int) {
 }
 
 class EntityAllocationException(message: String): Exception(message)
+
+fun MutableMap<ComponentId, ArchetypeMap>.putIfAbsent(componentId: ComponentId): ArchetypeMap {
+    return this.getOrPut(componentId) { mutableMapOf() }
+}
