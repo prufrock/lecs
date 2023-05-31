@@ -27,7 +27,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.createEntity()
+        val entityId = world.createEntity(name = "testEntity")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
@@ -55,8 +55,8 @@ class WorldTest {
 
     @Test
     fun addOneComponentToTwoDifferentEntities() {
-        val first = world.createEntity()
-        val second = world.createEntity()
+        val first = world.createEntity(name = "entity1")
+        val second = world.createEntity(name = "entity2")
 
         val firstPosition = world.addComponent(first, Position::class)
         world.setComponent(first, Position(1.0, 2.0))
@@ -73,7 +73,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.createEntity()
+        val entityId = world.createEntity(name = "entity")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
@@ -106,7 +106,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId1 = world.createEntity()
+        val entityId1 = world.createEntity(name = "entity1")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
@@ -118,7 +118,7 @@ class WorldTest {
         expectedEntityIndexSize += 2 // Add:Position[Component] because now entityId1 has a component to store in a row, Position[Archetype]
         checkCountersAndIndexes()
 
-        val entityId2 = world.createEntity()
+        val entityId2 = world.createEntity(name = "entity2")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
@@ -144,7 +144,7 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val entityId = world.createEntity()
+        val entityId = world.createEntity(name = "testEntity")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
@@ -173,12 +173,12 @@ class WorldTest {
         setExpectInitialWorldValues()
         checkCountersAndIndexes()
 
-        val player = world.createEntity()
+        val player = world.createEntity(name = "player")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
 
-        val car = world.createEntity()
+        val car = world.createEntity(name = "car")
         expectedEntityCounter += 1
         expectedEntityIndexSize += 1
         checkCountersAndIndexes()
@@ -207,7 +207,7 @@ class WorldTest {
 
     @Test
     fun setTwoComponentsOutOfOrder() {
-        val player = world.createEntity()
+        val player = world.createEntity(name = "player")
 
         world.addComponent(player, Position::class)
         world.addComponent(player, Velocity::class)
@@ -219,12 +219,12 @@ class WorldTest {
 
     @Test
     fun simpleSystem() {
-        val player = world.createEntity()
+        val player = world.createEntity(name = "player")
         val positionComponent = world.addComponent(player, Position::class)
 
         world.setComponent(player, Position(1.0, 3.0))
 
-        val systemId = world.addSystem(listOf(positionComponent)) { components ->
+        val systemId = world.addSystem(name = "position system", listOf(positionComponent)) { components ->
             val position: Position = components[0] as Position
             position.x += 1.0
         }
@@ -236,11 +236,11 @@ class WorldTest {
 
     @Test
     fun ensureComponentsAreOrderedInArchetypes() {
-        val enemy = world.createEntity()
+        val enemy = world.createEntity(name = "enemy")
         world.addComponent(enemy, Position::class)
         world.addComponent(enemy, Velocity::class)
 
-        val player = world.createEntity()
+        val player = world.createEntity(name = "player")
 
         // Set the components in a different order than they were created to ensure the Archetype has to re-order them.
         val velocityComponent = world.addComponent(player, Velocity::class)
@@ -279,14 +279,14 @@ class WorldTest {
 
         var positionComponent: ComponentId? = null
         for (i in 0..size) {
-            val entity = world.createEntity()
+            val entity = world.createEntity(name = "entity-$i")
             if (positionComponent == null) {
                 positionComponent = world.addComponent(entity, Position::class)
             }
             world.setComponent(entity, Position(Random.nextDouble(), Random.nextDouble()))
         }
 
-        val systemId = world.addSystem(listOf(positionComponent!!)) { components ->
+        val systemId = world.addSystem(name = "position system", listOf(positionComponent!!)) { components ->
             val position: Position = components[0] as Position
             position.x += Random.nextDouble()
         }

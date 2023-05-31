@@ -2,7 +2,7 @@ package com.dkanen.lecs
 
 typealias EntityId = Int
 
-data class Entity(var archetype: Archetype, var row: RowId) {
+data class Entity(val name: String, var archetype: Archetype, var row: RowId) {
 
     /**
      * Find the index of a component in the archetype.
@@ -13,7 +13,7 @@ data class Entity(var archetype: Archetype, var row: RowId) {
 
     override fun toString(): String {
         return buildString {
-            append("Record(archetype=${archetype}, row=$row)")
+            append("$name: R(archetype=${archetype}, row=$row)")
         }
     }
 }
