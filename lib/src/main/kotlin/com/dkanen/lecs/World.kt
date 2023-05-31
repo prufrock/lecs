@@ -160,15 +160,17 @@ class World {
     /**
      * Only allows selecting one component right now. Not terribly useful, yet.
      */
-    fun select(selector: List<ComponentId>): List<Component> {
-        val componentId = selector.first()
+    fun select(selector: List<ComponentId>): List<List<Component>> {
+        val selected: MutableList<MutableList<Component>> = mutableListOf()
 
-        val selected: MutableList<Component> = mutableListOf()
-
-        entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add?.let { archetype: Archetype ->
-            val componentPosition = archetype.indexOfComponent(componentId) //TODO: get the position of each selected component
+        findArchetype(selector.toMutableList())?.let { archetype: Archetype ->
+            val componentPositions = archetype.indexOfComponents(selector)
             archetype.rows.forEach { components: MutableList<Any?> ->
-                selected.add(components[componentPosition] as Component)
+                val selectedComponents = mutableListOf<Component>()
+                componentPositions.forEach { componentPosition: Int ->
+                    selectedComponents.add(components[componentPosition] as Component)
+                }
+                selected.add(selectedComponents)
             }
         }
 
@@ -179,8 +181,8 @@ class World {
         val system = getComponent(systemId, System::class)
 
         val results = select(system!!.selector)
-        results.forEach { component: Component ->
-            system.update(listOf(component))
+        results.forEach { components: List<Component> ->
+            system.update(components)
         }
     }
 
@@ -319,7 +321,7 @@ class World {
         return hasComponent(entityId, componentId)
     }
 
-    fun hasComponent(entityId: EntityId, componentId: ComponentId): Boolean {
+    private fun hasComponent(entityId: EntityId, componentId: ComponentId): Boolean {
         val entity: Entity = entityIndex[entityId] ?: return false
         val archetypeMap: ArchetypeMap = componentIndex[componentId] ?: return false
         return archetypeMap[entity.archetype.id] != null
@@ -330,7 +332,7 @@ class World {
         return findArchetypes(componentId)
     }
 
-    fun findArchetypes(componentId: ComponentId): List<ArchetypeId> {
+    private fun findArchetypes(componentId: ComponentId): List<ArchetypeId> {
         val archetypeMap: ArchetypeMap = componentIndex[componentId] ?: return emptyList()
         //TODO: create an archetype index to speed this up
         return entityIndex.toList().filter { (_, entity: Entity) -> archetypeMap[entity.archetype.id] != null }.map { it.first }

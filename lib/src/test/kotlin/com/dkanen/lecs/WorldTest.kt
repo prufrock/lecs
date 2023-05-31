@@ -220,17 +220,22 @@ class WorldTest {
     @Test
     fun simpleSystem() {
         val player = world.createEntity(name = "player")
+        val idComponent = world.addComponent(player, Id::class)
         val positionComponent = world.addComponent(player, Position::class)
 
+        world.setComponent(player, Id(player))
         world.setComponent(player, Position(1.0, 3.0))
 
-        val systemId = world.addSystem(name = "position system", listOf(positionComponent)) { components ->
-            val position: Position = components[0] as Position
+        var selectedId = 0;
+        val systemId = world.addSystem(name = "position system", listOf(idComponent, positionComponent)) { components ->
+            selectedId = (components[0] as Id).id
+            val position: Position = components[1] as Position
             position.x += 1.0
         }
 
         world.process(systemId)
 
+        assertEquals(player, selectedId)
         assertEquals(2.0, world.getComponent<Position>(player, positionComponent)!!.x)
     }
 

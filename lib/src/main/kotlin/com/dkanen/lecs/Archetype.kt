@@ -95,6 +95,8 @@ fun Archetype.rowAtOrFail(rowId: RowId): Row = rows.elementAtOrNull(rowId) ?: th
  */
 fun Archetype.indexOfComponent(componentId: ComponentId): Int = type.indexOf(componentId)
 
+fun Archetype.indexOfComponents(componentIds: List<ComponentId>): List<Int> = componentIds.map { type.indexOf(it) }
+
 /**
  * Create a row of nulls for this Type.
  */
