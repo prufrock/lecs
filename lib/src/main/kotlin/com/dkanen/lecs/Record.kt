@@ -2,7 +2,13 @@ package com.dkanen.lecs
 
 typealias EntityId = Int
 
-data class Entity(val name: String, var archetype: Archetype, var row: RowId) {
+/**
+ * You may think a Record is practically an entity, but it's not. An entity is a collection of components.
+ * In this way the Record points to an entity but isn't an entity itself.
+ *
+ * The row points to the row in the archetype that contains the components for the entity.
+ */
+data class Record(val name: String, var archetype: Archetype, var row: RowId) {
 
     /**
      * Find the index of a component in the archetype.
