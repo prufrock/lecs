@@ -220,9 +220,11 @@ class WorldTest {
     @Test
     fun simpleSystem() {
         val player = world.createEntity(name = "player")
+        val nameComponent = world.addComponent(player, Name::class)
         val idComponent = world.addComponent(player, Id::class)
         val positionComponent = world.addComponent(player, Position::class)
 
+        world.setComponent(player, Name("player"))
         world.setComponent(player, Id(player))
         world.setComponent(player, Position(1.0, 3.0))
 

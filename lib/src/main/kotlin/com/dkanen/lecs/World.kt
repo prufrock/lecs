@@ -286,10 +286,17 @@ class World {
         return Archetype(id, type, mutableListOf(), mutableMapOf())
     }
 
+    /**
+     * TODO: return a list of archetypes that match the type
+     */
     private fun findArchetype(type: Type): Archetype? {
         var foundArchetype: Archetype? = null
-        type.forEach { componentId: ComponentId ->
-            foundArchetype = foundArchetype?.edges?.get(componentId)?.add ?: entityIndex[rootEntity]?.archetype?.edges?.get(componentId)?.add
+        entityIndex.toList().forEach {
+            val record = it.second
+            // brute force search for the matching archetype
+            if (record.archetype.type.containsAll(type)) {
+                foundArchetype = record.archetype
+            }
         }
         return foundArchetype
     }
