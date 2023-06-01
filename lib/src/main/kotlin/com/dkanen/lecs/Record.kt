@@ -8,7 +8,7 @@ typealias EntityId = Int
  *
  * The row points to the row in the archetype that contains the components for the entity.
  */
-data class Record(val name: String, var archetype: Archetype, var row: RowId) {
+data class Record(var archetype: Archetype, var row: RowId) {
 
     /**
      * Find the index of a component in the archetype.
@@ -19,7 +19,7 @@ data class Record(val name: String, var archetype: Archetype, var row: RowId) {
 
     override fun toString(): String {
         return buildString {
-            append("$name: R(archetype=${archetype}, row=$row)")
+            append("R(archetype=${archetype}, row=$row)")
         }
     }
 }

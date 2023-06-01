@@ -73,11 +73,10 @@ class World {
             rows = mutableListOf(mutableListOf(null), mutableListOf(null)), // root entity & empty archetype
             edges = mutableMapOf(Pair(metaArchetypeId, ArchetypeEdge(add = metaArchetypeArchetype)))
         )
-        entityIndex[rootEntity] = Record(name = "root", archetype = archetype, row = 0)
-        entityIndex[emptyArchetypeEntity] = Record(name = "empty archetype", archetype = archetype, row = 1)
-        entityIndex[metaArchetypeId] = Record(name = "meta-archetype", archetype, row = 2)
-        entityIndex[metaArchetypeArchetype.id] =
-            Record(name = "meta-archetype archetype", archetype = archetype, row = 3)
+        entityIndex[rootEntity] = Record(archetype = archetype, row = 0)
+        entityIndex[emptyArchetypeEntity] = Record(archetype = archetype, row = 1)
+        entityIndex[metaArchetypeId] = Record(archetype, row = 2)
+        entityIndex[metaArchetypeArchetype.id] = Record(archetype = archetype, row = 3)
 
         return Pair(metaArchetypeId, metaArchetypeArchetype.id)
     }
@@ -130,7 +129,7 @@ class World {
     private fun createEntity(id: EntityId, name: String, archetype: Archetype = emptyArchetype()): EntityId {
         // All entities start out in the empty Archetype. Then by maintaining the list of add edges on the for each
         // component on the empty, it's always possible to find a path to the first component added.
-        entityIndex[id] = Record(name = name, archetype = archetype, row = archetype.createEmptyRow())
+        entityIndex[id] = Record(archetype = archetype, row = archetype.createEmptyRow())
         return id
     }
 
@@ -339,7 +338,16 @@ class World {
         return entityIndex.toList().filter { (_, record: Record) -> archetypeMap[record.archetype.id] != null }.map { it.first }
     }
 
-    fun identify(entityId: EntityId): String = entityIndex[entityId]?.name ?: "Unknown"
+    fun identify(entityId: EntityId): String {
+        return when(entityId) {
+            rootEntity -> "root entity"
+            emptyArchetypeEntity -> "empty archetype"
+            metaArchetypeEntity -> "meta-archetype"
+            metaComponentEntity -> "meta-component"
+            metaSystemEntity -> "meta-system"
+            else -> "unknown entity"
+        }
+    }
 
     fun archetypeFor(entity: EntityId): Archetype? {
         return entityIndex[entity]?.archetype
