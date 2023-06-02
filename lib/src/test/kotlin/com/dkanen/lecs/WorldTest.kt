@@ -45,7 +45,7 @@ class WorldTest {
         assertTrue(world.entityIndex[world.rootEntity]!!.archetype.edges[positionId]?.add != null, "Position[Component] should be in the rootEntity's archetype.")
         assertTrue(world.hasComponent(entityId, Position::class))
 
-        assertEquals(4, world.findArchetypes(MetaComponent::class).size) // Components: MetaArchetype, MetaComponent, MetaSystem, Position
+        assertEquals(6, world.findArchetypes(MetaComponent::class).size) // Components: MetaArchetype, MetaComponent, MetaSystem, Id, Name, Position
         assertEquals(3, world.findArchetypes(MetaArchetype::class).size) // Archetype: (Empty), (MetaArchetype), (Position)
         assertEquals(1, world.findArchetypes(Position::class).size)
         assertTrue(world.hasComponent(world.metaComponentEntity, MetaComponent::class))
@@ -64,8 +64,8 @@ class WorldTest {
         val secondPosition = world.addComponent(second, Position::class)
         world.setComponent(second, Position(3.0, 4.0))
 
-        assertEquals(1.0, world.getComponent(first, Position::class)!!.x)
-        assertEquals(3.0, world.getComponent(second, Position::class)!!.x)
+        assertEquals(1.0, world.getComponent<Position>(first)!!.x)
+        assertEquals(3.0, world.getComponent<Position>(second)!!.x)
     }
 
     @Test
@@ -159,7 +159,7 @@ class WorldTest {
         world.setComponent(entityId, Position(1.0, 3.0))
         checkCountersAndIndexes() // setting components doesn't change the counters or the indexes
 
-        val component: Position = world.getComponent(entityId, Position::class) ?: fail("Expected component to be not null")
+        val component: Position = world.getComponent<Position>(entityId) ?: fail("Expected component to be not null")
         assertEquals(1.0, component.x)
         assertEquals(3.0, component.y)
         assertTrue(world.hasComponent(entityId, Position::class))
@@ -209,27 +209,22 @@ class WorldTest {
     fun setTwoComponentsOutOfOrder() {
         val player = world.createEntity(name = "player")
 
-        world.addComponent(player, Position::class)
-        world.addComponent(player, Velocity::class)
         world.setComponent(player, Velocity(1.0, 2.0))
         world.setComponent(player, Position(3.0, 6.0))
 
-        assertEquals(Velocity(1.0, 2.0), world.getComponent(player, Velocity::class))
+        assertEquals(Velocity(1.0, 2.0), world.getComponent<Velocity>(player))
     }
 
     @Test
     fun simpleSystem() {
         val player = world.createEntity(name = "player")
-        val nameComponent = world.addComponent(player, Name::class)
-        val idComponent = world.addComponent(player, Id::class)
-        val positionComponent = world.addComponent(player, Position::class)
 
         world.setComponent(player, Name("player"))
         world.setComponent(player, Id(player))
         world.setComponent(player, Position(1.0, 3.0))
 
         var selectedId = 0;
-        val systemId = world.addSystem(name = "position system", listOf(idComponent, positionComponent)) { components ->
+        val systemId = world.addSystem(name = "position system", world.componentToId(Id::class, Position::class)) { components ->
             selectedId = (components[0] as Id).id
             val position: Position = components[1] as Position
             position.x += 1.0
@@ -238,7 +233,7 @@ class WorldTest {
         world.process(systemId)
 
         assertEquals(player, selectedId)
-        assertEquals(2.0, world.getComponent<Position>(player, positionComponent)!!.x)
+        assertEquals(2.0, world.getComponent<Position>(player)!!.x)
     }
 
     @Test
@@ -302,10 +297,10 @@ class WorldTest {
     }
 
     private fun setExpectInitialWorldValues() {
-        expectedEntityCounter += 7 // rootEntity - 0, emptyArchetype - 1, MetaComponent[Component] - 4, MetaComponent[Archetype] - 5, MetaArchetype[Component] - 2, MetaArchetype[Archetype] - 3, MetaSystem[Component] - 6
-        expectedkClassIndexSize += 2 // MetaComponent, MetaArchetype
+        expectedEntityCounter += 9 // rootEntity - 0, emptyArchetype - 1, MetaComponent[Component] - 4, MetaComponent[Archetype] - 5, MetaArchetype[Component] - 2, MetaArchetype[Archetype] - 3, MetaSystem[Component] - 6, Id[Component] - 7, Name[Component] - 8
+        expectedkClassIndexSize += 4 // MetaComponent, MetaArchetype, Id, Name
         expectedComponentIndexSize += 2 // MetaComponent[Component], MetaArchetype[Component]
-        expectedEntityIndexSize += 7 // all the entities are now represented in the entity index thanks to meta components
+        expectedEntityIndexSize += 9 // all the entities are now represented in the entity index thanks to meta components
     }
 
     private fun checkCountersAndIndexes() {

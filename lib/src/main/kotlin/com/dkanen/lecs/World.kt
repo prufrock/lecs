@@ -56,6 +56,9 @@ class World {
 
         metaSystemEntity = createEntity(name = "meta-system")
         addComponent(metaSystemEntity, MetaComponent::class)
+
+        findOrCreateComponent(Id::class)
+        findOrCreateComponent(Name::class)
     }
 
     private fun entityId(): EntityId = entityCounter++
@@ -178,7 +181,7 @@ class World {
     }
 
     fun process(systemId: SystemId) {
-        val system = getComponent(systemId, System::class)
+        val system = getComponent<System>(systemId)
 
         val results = select(system!!.selector)
         results.forEach { components: List<Component> ->
@@ -223,9 +226,9 @@ class World {
 
 
     fun <T: Component> setComponent(entityId: EntityId, component: T) {
-        val record: Record = entityIndex[entityId] ?: run {
+        val record: Record = run {
             addComponent(entityId, component::class)
-            entityIndex[entityId]!!
+            entityIndex[entityId] ?: throw EntityNotFoundException(entityId)
         }
         val archetype: Archetype = record.archetype
         val columnId: Int = archetype.type.indexOf(kClassIndex[component::class]!!)
@@ -234,8 +237,8 @@ class World {
         archetype.rows[row][columnId] = component
     }
 
-    fun <T: Any> getComponent(entityId: EntityId, component: KClass<T>): T? {
-        val componentId = kClassIndex[component] ?: return null
+    inline fun <reified T: Any> getComponent(entityId: EntityId): T? {
+        val componentId = kClassIndex[T::class] ?: return null
         return getComponent(entityId, componentId)
     }
 
@@ -358,5 +361,12 @@ class World {
 
     fun archetypeFor(entity: EntityId): Archetype? {
         return entityIndex[entity]?.archetype
+    }
+
+    /**
+     * Convert classes to a list of component ids.
+     */
+    fun componentToId(vararg xs: KClass<*>): List<ComponentId> {
+        return xs.map { kClassIndex[it]!! }
     }
 }
