@@ -37,6 +37,9 @@ class World {
 
     val metaArchetypeArchetype: ArchetypeId
 
+    var idComponent: ComponentId? = null
+    var nameComponent: ComponentId? = null
+
     /**
      * This Component tags a System as a System. You can use it to find Systems.
      */
@@ -54,11 +57,11 @@ class World {
         addComponent(metaArchetypeEntity, MetaComponent::class)
         addComponent(metaArchetypeArchetype, MetaArchetype::class)
 
+        idComponent = findOrCreateComponent(Id::class)
+        nameComponent = findOrCreateComponent(Name::class)
+
         metaSystemEntity = createEntity(name = "meta-system")
         addComponent(metaSystemEntity, MetaComponent::class)
-
-        findOrCreateComponent(Id::class)
-        findOrCreateComponent(Name::class)
     }
 
     private fun entityId(): EntityId = entityCounter++
@@ -95,7 +98,18 @@ class World {
      */
     fun addComponent(entityId: EntityId, component: KClass<*>): ComponentId = storeComponent(entityId, findOrCreateComponent(component))
 
-    fun createEntity(archetype: Archetype = emptyArchetype(), name: String): EntityId = createEntity(entityId(), name, archetype)
+    fun createEntity(archetype: Archetype = emptyArchetype(), name: String?): EntityId  {
+        val entityId = createEntity(
+            entityId(),
+            archetype
+        )
+
+        if (nameComponent != null && !name.isNullOrBlank()) {
+            setComponent(entityId, Name(name))
+        }
+
+        return entityId
+    }
 
     private fun storeComponent(entityId: EntityId, componentId: ComponentId): ComponentId {
         entityIndex[entityId]?.let {
@@ -129,7 +143,7 @@ class World {
      *
      * Post condition: the entity exists in the entity index.
      */
-    private fun createEntity(id: EntityId, name: String, archetype: Archetype = emptyArchetype()): EntityId {
+    private fun createEntity(id: EntityId, archetype: Archetype = emptyArchetype()): EntityId {
         // All entities start out in the empty Archetype. Then by maintaining the list of add edges on the for each
         // component on the empty, it's always possible to find a path to the first component added.
         entityIndex[id] = Record(archetype = archetype, row = archetype.createEmptyRow())
@@ -146,7 +160,7 @@ class World {
      * If the component has been seen before, use its id, otherwise create a new id and add it to the index
      */
     private fun findOrCreateComponent(component: KClass<*>) = kClassIndex[component] ?: run {
-        val id = createEntity(name = component.simpleName ?: "unknown")
+        val id = createEntity(name = null)
         kClassIndex[component] = id
         addComponent(id, MetaComponent::class)
         id
@@ -164,6 +178,7 @@ class World {
      * Only allows selecting one component right now. Not terribly useful, yet.
      */
     fun select(selector: List<ComponentId>): List<List<Component>> {
+        // TODO: need to sort selector
         val selected: MutableList<MutableList<Component>> = mutableListOf()
 
         findArchetype(selector.toMutableList())?.let { archetype: Archetype ->
@@ -284,7 +299,7 @@ class World {
 
     private fun createArchetype(type: Type): Archetype {
         //TODO: limit the name of an archetype to some number of components
-        val id = createEntity(name = type.map{ identify(it) }.joinToString(",") + " Archetype")
+        val id = createEntity(name = null)
         addComponent(id, MetaArchetype::class)
         return Archetype(id, type, mutableListOf(), mutableMapOf())
     }
