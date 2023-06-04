@@ -45,7 +45,7 @@ class WorldTest {
         assertTrue(world.hasComponent(entityId, Position::class))
 
         assertEquals(6, world.findArchetypes(MetaComponent::class).size) // Components: MetaArchetype, MetaComponent, MetaSystem, Id, Name, Position
-        assertEquals(5, world.findArchetypes(MetaArchetype::class).size) // Archetype: (Empty), (MetaArchetype), (Position), (Name), (MetaComponent, Name)
+        assertEquals(6, world.findArchetypes(MetaArchetype::class).size) // Archetype: (Empty), (MetaArchetype), (Position), (Name), (MetaComponent, Name), (MetaComponent, Name, Id)
         assertEquals(1, world.findArchetypes(Position::class).size)
         assertTrue(world.hasComponent(world.metaComponentEntity, MetaComponent::class))
         assertTrue(world.hasComponent(world.metaArchetypeEntity, MetaComponent::class))
@@ -250,10 +250,10 @@ class WorldTest {
         val archetype = world.archetypeFor(player)
 
         assertEquals(world.archetypeFor(enemy), world.archetypeFor(player), "The two entities should be in the same archetype.")
-        assertEquals(3, archetype?.type?.count(), "The archetype should have 2 components.")
-        assertEquals(positionComponent, archetype?.type?.get(1), "The archetype should have the Position component first.")
-        assertEquals(velocityComponent, archetype?.type?.get(2), "The archetype should have the Velocity component second.")
-        assertEquals(6, archetype?.countComponents(), "The archetype should have 6 components.")
+        assertEquals(4, archetype?.type?.count(), "The archetype should have 4 components.")
+        assertEquals(positionComponent, archetype?.type?.get(2), "The archetype should have the Position component after the id and name component.")
+        assertEquals(velocityComponent, archetype?.type?.get(3), "The archetype should have the Velocity component after the Position component.")
+        assertEquals(8, archetype?.countComponents(), "The archetype should have 8 components.")
         assertEquals(2, archetype?.countRows(), "The archetype should have 2 rows.")
     }
 
@@ -296,10 +296,10 @@ class WorldTest {
     }
 
     private fun setExpectInitialWorldValues() {
-        expectedEntityCounter += 11 // rootEntity - 0, emptyArchetype - 1, MetaComponent[Component] - 4, MetaComponent[Archetype] - 5, MetaArchetype[Component] - 2, MetaArchetype[Archetype] - 3, MetaSystem[Component] - 6, Id[Component] - 7, Name[Component] - 8, Name[Archetype] - 9, MetaComponent, Name[Archetype] - 10
+        expectedEntityCounter += 12 // rootEntity - 0, emptyArchetype - 1, MetaComponent[Component] - 4, MetaComponent[Archetype] - 5, MetaArchetype[Component] - 2, MetaArchetype[Archetype] - 3, MetaSystem[Component] - 6, Id[Component] - 7, Name[Component] - 8, Name[Archetype] - 9, MetaComponent, Name[Archetype] - 10, Component, Id, Name[Archetype] - 11
         expectedkClassIndexSize += 4 // MetaComponent, MetaArchetype, Id, Name
-        expectedComponentIndexSize += 3 // MetaComponent[Component], MetaArchetype[Component], Name[Component]
-        expectedEntityIndexSize += 11 // all the entities are now represented in the entity index thanks to meta components
+        expectedComponentIndexSize += 4 // MetaComponent[Component], MetaArchetype[Component], Name[Component], Id[Component]
+        expectedEntityIndexSize += 12 // all the entities are now represented in the entity index thanks to meta components
     }
 
     private fun checkCountersAndIndexes() {

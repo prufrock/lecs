@@ -62,6 +62,17 @@ class World {
 
         metaSystemEntity = createEntity(name = "meta-system")
         addComponent(metaSystemEntity, MetaComponent::class)
+
+        setComponent(idComponent!!, Name("Id"))
+        setComponent(idComponent!!, Id(idComponent!!))
+
+        setComponent(nameComponent!!, Name("Name"))
+        setComponent(nameComponent!!, Id(nameComponent!!))
+
+        setComponent(metaArchetypeEntity, Name("meta-archetype"))
+        setComponent(metaArchetypeEntity, Id(metaArchetypeEntity))
+        setComponent(metaComponentEntity, Name("meta-component"))
+        setComponent(metaArchetypeEntity, Id(metaComponentEntity))
     }
 
     private fun entityId(): EntityId = entityCounter++
@@ -103,6 +114,11 @@ class World {
             entityId(),
             archetype
         )
+
+        //TODO: Archetype creation does not appreciate adding Id and Name components. Need to resolve some ordering issues.
+        if (idComponent != null && !name.isNullOrBlank()) {
+            setComponent(entityId, Id(entityId))
+        }
 
         if (nameComponent != null && !name.isNullOrBlank()) {
             setComponent(entityId, Name(name))
@@ -298,7 +314,6 @@ class World {
     }
 
     private fun createArchetype(type: Type): Archetype {
-        //TODO: limit the name of an archetype to some number of components
         val id = createEntity(name = null)
         addComponent(id, MetaArchetype::class)
         return Archetype(id, type, mutableListOf(), mutableMapOf())

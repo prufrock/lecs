@@ -18,8 +18,10 @@ data class Record(var archetype: Archetype, var row: RowId) {
     }
 
     override fun toString(): String {
+        val id = archetype.rows.get(row).filterIsInstance<Id>().firstOrNull()?.id ?: ""
+        val name = archetype.rows.get(row).filterIsInstance<Name>().firstOrNull()?.name ?: ""
         return buildString {
-            append("R(archetype=${archetype}, row=$row)")
+            append("id[$id] n[$name] r[$row] a[${archetype.id}] t[${archetype.type.joinToString(",")}]")
         }
     }
 }
