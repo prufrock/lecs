@@ -47,7 +47,7 @@ class DynamicComponentChart: ComponentChart {
 
     private val archetypes: MutableList<Archetype> = mutableListOf(root)
 
-    private val components: MutableMap<KClass<*>, ComponentId> = mutableMapOf()
+    private val components: MutableMap<KClass<out Component>, ComponentId> = mutableMapOf()
 
     //TODO: I think this can be MutableMap<ComponentId, Pair<ArchetypeId, ArchetypeColumn>>
     private val componentArchetype: MutableMap<ComponentId, MutableMap<ArchetypeId, ArchetypeColumn>> = mutableMapOf()
