@@ -41,9 +41,10 @@ interface ComponentChart {
     fun update(query: Query, transform: (List<Component>, columns: List<ArchetypeColumn>) -> List<Component>)
 }
 
+//TOOD: Change to a fixed component chart
 class DynamicComponentChart: ComponentChart {
 
-    private val root = Archetype(ArchetypeId(0), listOf(), listOf())
+    private val root = Archetype(ArchetypeId(0), listOf(), createTable(listOf()))
 
     private val archetypes: MutableList<Archetype> = mutableListOf(root)
 
@@ -210,7 +211,7 @@ class DynamicComponentChart: ComponentChart {
     }
 
     private fun createArchetypeForType(
-        previous: Archetype,
+        previousArchetype: Archetype,
         type: List<ComponentId>,
         components: List<KClass<out Component>>
     ): Archetype {
@@ -218,13 +219,13 @@ class DynamicComponentChart: ComponentChart {
         type.forEachIndexed { column, newComponentId ->
             componentArchetype[newComponentId] = mutableMapOf(archetypeId to ArchetypeColumn(column))
         }
-        val archetype = Archetype(archetypeId, type, components)
-        archetypes.add(archetype)
+        val newArchetype = Archetype(archetypeId, type, createTable(components))
+        archetypes.add(newArchetype)
         // add the last component to the previous archetype go to the new archetype
-        previous.edges[type.last()] = archetype.id
-        // remove the last component to the new archetype go to the old archetype
-        archetype.edges[type.last()] = previous.id
-        return archetype
+        previousArchetype.edges[type.last()] = newArchetype.id
+        // remove the last component from the new archetype go to the old archetype
+        newArchetype.edges[type.last()] = previousArchetype.id
+        return newArchetype
     }
 
     private fun componentId(component: Component): ComponentId = components[component::class] ?: createComponent(component)
@@ -232,42 +233,44 @@ class DynamicComponentChart: ComponentChart {
     private fun createComponent(component: Component) = ComponentId(components.count()).also { components[component::class] = it }
 
     private fun column(componentId: ComponentId, archetypeId: ArchetypeId): ArchetypeColumn? = componentArchetype[componentId]?.get(archetypeId)
+
+    private fun createTable(components: List<KClass<out Component>>) = SparseArrayTable(500, components)
 }
 
 //TODO: naming is inconsistent
 data class Archetype(
     val id: ArchetypeId,
     val type: List<ComponentId>,
-    val components: List<KClass<out Component>>
+    private val table: Table
 ): Iterable<Row> {
     val edges: MutableMap<ComponentId, ArchetypeId> = mutableMapOf()
-    private val table: MutableList<Row> = mutableListOf()
 
-    fun createRow(): RowId = RowId(table.add(mutableListOf()).run{ table.lastIndex }, id)
+    val components
+        get() = table.components
+
+    fun createRow(): RowId = RowId(table.create(), id)
 
     fun read(rowId: RowId): Row {
-        return table[rowId.id]
+        return table.read(rowId.id).toMutableList()
     }
 
     fun deleteRow(rowId: RowId): Row {
-        val row = table[rowId.id]
-        table[rowId.id] = mutableListOf()
+        val row = table.read(rowId.id).toMutableList()
+        table.delete(rowId.id)
         return row
     }
 
     fun update(rowId: RowId, column: ArchetypeColumn, component: Component): RowId {
-        table[rowId.id][column.id] = component
+        table.update(rowId.id, column.id, component)
         return rowId
     }
 
     fun insert(row: Row): RowId {
-        val id = createRow()
-        table[id.id] = row
-        return id
+        return RowId(table.insert(row), id)
     }
 
     fun update(rowId: RowId, row: Row) {
-        table[rowId.id] = row
+        table.update(rowId.id, row)
     }
 
     override fun iterator(): Iterator<Row> = table.iterator()

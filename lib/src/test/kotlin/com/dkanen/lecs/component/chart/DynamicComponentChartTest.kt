@@ -210,8 +210,8 @@ class DynamicComponentChartTest {
     }
 }
 
-data class Health(var pts: Int): Component
+data class Health(var pts: Int = 0): Component
 
-data class Mana(var pts: Int): Component
+data class Mana(var pts: Int = 0): Component
 
-data class Cakes(var count: Int): Component
+data class Cakes(var count: Int = 0): Component
