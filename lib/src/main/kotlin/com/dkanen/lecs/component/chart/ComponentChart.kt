@@ -32,9 +32,9 @@ interface ComponentChart {
 
     fun deleteRow(rowId: RowId)
 
-    fun <T: Component> addComponent(rowId: RowId, component: T): RowId
+    fun addComponent(rowId: RowId, component: Component): RowId
 
-    fun <T: Component> removeComponent(rowId: RowId, component: KClass<T>): RowId
+    fun removeComponent(rowId: RowId, component: KClass<out Component>): RowId
 
     fun select(query: Query, read: (List<Component>, columns: List<ArchetypeColumn>) -> Unit)
 
@@ -43,7 +43,7 @@ interface ComponentChart {
 
 class DynamicComponentChart: ComponentChart {
 
-    private val root = Archetype(ArchetypeId(0), listOf())
+    private val root = Archetype(ArchetypeId(0), listOf(), listOf())
 
     private val archetypes: MutableList<Archetype> = mutableListOf(root)
 
@@ -64,7 +64,7 @@ class DynamicComponentChart: ComponentChart {
         archetypes[rowId.archetypeId.id].deleteRow(rowId)
     }
 
-    override fun <T: Component> addComponent(rowId: RowId, component: T): RowId {
+    override fun addComponent(rowId: RowId, component: Component): RowId {
         // 1. Get the ComponentId
         // 2. Get the Archetype.
         // 3. If it's already in the Archetype update the Component.
@@ -85,7 +85,7 @@ class DynamicComponentChart: ComponentChart {
         }
     }
 
-    override fun <T: Component> removeComponent(rowId: RowId, component: KClass<T>): RowId {
+    override fun removeComponent(rowId: RowId, component: KClass<out Component>): RowId {
         // 1. Explode if the component or archetype doesn't exist.
         // 2. Get the Archetype
         // 3. Follow the remove edge to the destination Archetype.
@@ -102,8 +102,11 @@ class DynamicComponentChart: ComponentChart {
         row.removeAt(column.id)
         val type = archetype.type.toMutableList()
         type.removeAt(column.id)
+        val components = archetype.components.toMutableList()
+        components.removeAt(column.id)
 
-        return findOrCreateArchetype(archetype, componentId, row, type)
+
+        return findOrCreateArchetype(archetype, componentId, row, type, components)
     }
 
     override fun select(query: Query, read: (List<Component>, columns: List<ArchetypeColumn>) -> Unit) {
@@ -153,41 +156,52 @@ class DynamicComponentChart: ComponentChart {
 
     private fun sortedComponentIds(query: Query) = query.mapNotNull { components[it] }.sortedBy { it.id }
 
-    private fun <T : Component> updateNearestArchetype(
+    private fun updateNearestArchetype(
         archetype: Archetype,
         rowId: RowId,
         componentId: ComponentId,
-        component: T
+        component: Component
     ): RowId {
         val row = archetype.deleteRow(rowId)
         val typedComponents = (archetype.type + componentId).alignedWith(row + component)
 
-        return findOrCreateArchetype(archetype, componentId, typedComponents.row(), typedComponents.type())
+        return findOrCreateArchetype(
+            archetype,
+            componentId,
+            typedComponents.row(),
+            typedComponents.type(),
+            archetype.components + component::class
+        )
     }
 
     private fun findOrCreateArchetype(
         archetype: Archetype,
         componentId: ComponentId,
         row: Row,
-        type: List<ComponentId>
+        type: List<ComponentId>,
+        components: List<KClass<out Component>>
     ): RowId {
         val nextArchetypeId = archetype.edges[componentId]
         val newRowId: RowId
         if (nextArchetypeId != null) {
             newRowId = archetypes[nextArchetypeId.id].insert(row)
         } else {
-            val nextArchetype = nearestNeighborWithType(type)
+            val nextArchetype = nearestNeighborWithType(type, components)
             newRowId = nextArchetype.insert(row)
         }
         return newRowId
     }
 
-    private fun nearestNeighborWithType(type: List<ComponentId>): Archetype {
+    private fun nearestNeighborWithType(type: List<ComponentId>, components: List<KClass<out Component>>): Archetype {
         var nextArchetype = root
         type.forEachIndexed { index, componentId ->
             val next = nextArchetype.edges[componentId]
             nextArchetype = if (next == null) {
-                createArchetypeForType(nextArchetype, type.subList(0, index + 1))
+                createArchetypeForType(
+                    nextArchetype,
+                    type.subList(0, index + 1),
+                    components
+                )
             } else {
                 archetypes[next.id]
             }
@@ -195,12 +209,16 @@ class DynamicComponentChart: ComponentChart {
         return nextArchetype
     }
 
-    private fun createArchetypeForType(previous: Archetype, type: List<ComponentId>): Archetype {
+    private fun createArchetypeForType(
+        previous: Archetype,
+        type: List<ComponentId>,
+        components: List<KClass<out Component>>
+    ): Archetype {
         val archetypeId = ArchetypeId(archetypes.count())
         type.forEachIndexed { column, newComponentId ->
             componentArchetype[newComponentId] = mutableMapOf(archetypeId to ArchetypeColumn(column))
         }
-        val archetype = Archetype(archetypeId, type)
+        val archetype = Archetype(archetypeId, type, components)
         archetypes.add(archetype)
         // add the last component to the previous archetype go to the new archetype
         previous.edges[type.last()] = archetype.id
@@ -209,15 +227,19 @@ class DynamicComponentChart: ComponentChart {
         return archetype
     }
 
-    private fun <T: Component> componentId(component: T): ComponentId = components[component::class] ?: createComponent(component)
+    private fun componentId(component: Component): ComponentId = components[component::class] ?: createComponent(component)
 
-    private fun <T: Component> createComponent(component: T) = ComponentId(components.count()).also { components[component::class] = it }
+    private fun createComponent(component: Component) = ComponentId(components.count()).also { components[component::class] = it }
 
     private fun column(componentId: ComponentId, archetypeId: ArchetypeId): ArchetypeColumn? = componentArchetype[componentId]?.get(archetypeId)
 }
 
 //TODO: naming is inconsistent
-data class Archetype(val id: ArchetypeId, val type: List<ComponentId>): Iterable<Row> {
+data class Archetype(
+    val id: ArchetypeId,
+    val type: List<ComponentId>,
+    val components: List<KClass<out Component>>
+): Iterable<Row> {
     val edges: MutableMap<ComponentId, ArchetypeId> = mutableMapOf()
     private val table: MutableList<Row> = mutableListOf()
 
@@ -233,7 +255,7 @@ data class Archetype(val id: ArchetypeId, val type: List<ComponentId>): Iterable
         return row
     }
 
-    fun <T: Component> update(rowId: RowId, column: ArchetypeColumn, component: T): RowId {
+    fun update(rowId: RowId, column: ArchetypeColumn, component: Component): RowId {
         table[rowId.id][column.id] = component
         return rowId
     }
