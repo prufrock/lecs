@@ -41,9 +41,9 @@ interface ComponentChart {
     fun update(query: Query, transform: (List<Component>, columns: List<ArchetypeColumn>) -> List<Component>)
 }
 
-class FixedComponentChart: ComponentChart {
+class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = ArchetypeFactory(500)): ComponentChart {
 
-    private val root = createArchetype(ArchetypeId(0), listOf(), createTable(listOf()))
+    private val root = createArchetype(ArchetypeId(0), listOf(), listOf())
 
     private val archetypes: MutableList<Archetype> = mutableListOf(root)
 
@@ -218,7 +218,7 @@ class FixedComponentChart: ComponentChart {
         type.forEachIndexed { column, newComponentId ->
             componentArchetype[newComponentId] = mutableMapOf(archetypeId to ArchetypeColumn(column))
         }
-        val newArchetype = createArchetype(archetypeId, type, createTable(components))
+        val newArchetype = createArchetype(archetypeId, type, components)
         archetypes.add(newArchetype)
         // add the last component to the previous archetype go to the new archetype
         previousArchetype.edges[type.last()] = newArchetype.id
@@ -233,9 +233,7 @@ class FixedComponentChart: ComponentChart {
 
     private fun column(componentId: ComponentId, archetypeId: ArchetypeId): ArchetypeColumn? = componentArchetype[componentId]?.get(archetypeId)
 
-    private fun createTable(components: List<KClass<out Component>>) = SparseArrayTable(500, components)
-
-    private fun createArchetype(id: ArchetypeId, type: List<ComponentId>, table: Table): Archetype = Archetype(id, type, table)
+    private fun createArchetype(id: ArchetypeId, type: List<ComponentId>, components: List<KClass<out Component>>) = archetypeFactory.create(id, type, components)
 }
 
 //TODO: naming is inconsistent
@@ -275,6 +273,12 @@ data class Archetype(
     }
 
     override fun iterator(): Iterator<Row> = table.iterator()
+}
+
+class ArchetypeFactory(private val size: Int) {
+    fun create(id: ArchetypeId, type: List<ComponentId>, components: List<KClass<out Component>>): Archetype {
+        return Archetype(id, type, SparseArrayTable(size, components))
+    }
 }
 
 fun <T: Comparable<T>, U> List<T>.alignedWith(other: List<U>): List<Pair<T, U>> = zip(other).sortedBy { it.first }
