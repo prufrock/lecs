@@ -43,7 +43,7 @@ interface ComponentChart {
 
 class FixedComponentChart: ComponentChart {
 
-    private val root = Archetype(ArchetypeId(0), listOf(), createTable(listOf()))
+    private val root = createArchetype(ArchetypeId(0), listOf(), createTable(listOf()))
 
     private val archetypes: MutableList<Archetype> = mutableListOf(root)
 
@@ -218,7 +218,7 @@ class FixedComponentChart: ComponentChart {
         type.forEachIndexed { column, newComponentId ->
             componentArchetype[newComponentId] = mutableMapOf(archetypeId to ArchetypeColumn(column))
         }
-        val newArchetype = Archetype(archetypeId, type, createTable(components))
+        val newArchetype = createArchetype(archetypeId, type, createTable(components))
         archetypes.add(newArchetype)
         // add the last component to the previous archetype go to the new archetype
         previousArchetype.edges[type.last()] = newArchetype.id
@@ -234,6 +234,8 @@ class FixedComponentChart: ComponentChart {
     private fun column(componentId: ComponentId, archetypeId: ArchetypeId): ArchetypeColumn? = componentArchetype[componentId]?.get(archetypeId)
 
     private fun createTable(components: List<KClass<out Component>>) = SparseArrayTable(500, components)
+
+    private fun createArchetype(id: ArchetypeId, type: List<ComponentId>, table: Table): Archetype = Archetype(id, type, table)
 }
 
 //TODO: naming is inconsistent
