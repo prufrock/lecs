@@ -41,8 +41,7 @@ interface ComponentChart {
     fun update(query: Query, transform: (List<Component>, columns: List<ArchetypeColumn>) -> List<Component>)
 }
 
-//TOOD: Change to a fixed component chart
-class DynamicComponentChart: ComponentChart {
+class FixedComponentChart: ComponentChart {
 
     private val root = Archetype(ArchetypeId(0), listOf(), createTable(listOf()))
 

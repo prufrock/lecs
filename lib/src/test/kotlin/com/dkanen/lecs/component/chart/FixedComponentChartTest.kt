@@ -3,11 +3,11 @@ package com.dkanen.lecs.component.chart
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-class DynamicComponentChartTest {
+class FixedComponentChartTest {
 
     @Test
     fun createRow() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         val row = chart.createRow()
 
@@ -17,7 +17,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun addComponent() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         val row = chart.createRow()
 
@@ -36,7 +36,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun readComponent() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         val row = chart.createRow().let {
             chart.addComponent(it, Health(3))
@@ -48,7 +48,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun removeComponent() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         val row = chart.createRow()
 
@@ -74,7 +74,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun `select a single row by it's only component`() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         chart.createRow().let {
             chart.addComponent(it, Health(3))
@@ -91,7 +91,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun `select a single row by it's second component`() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         chart.createRow().let {
             chart.addComponent(it, Health(3))
@@ -109,7 +109,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun `select three rows by two components`() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         chart.createRow().let {
             // Is the ergonomics of need to switch to the new row after each change a problem?
@@ -136,7 +136,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun `select from two different groups of components`() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         chart.createRow().let {
             chart.addComponent(it, Health(3))
@@ -167,7 +167,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun `query to update a component on a row with a single component`() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         val row = chart.createRow().let {
             chart.addComponent(it, Health(3))
@@ -187,7 +187,7 @@ class DynamicComponentChartTest {
 
     @Test
     fun `query to update a component on a row with three components`() {
-        val chart = DynamicComponentChart()
+        val chart = FixedComponentChart()
 
         val row = chart.createRow().let {
             chart.addComponent(it, Health(3))
