@@ -173,12 +173,10 @@ class FixedComponentChartTest {
             chart.addComponent(it, Health(3))
         }
 
-        chart.update(Query(listOf(Health::class))) { components, columns ->
+        chart.select(Query(listOf(Health::class))) { components, columns ->
             val health = components[columns[0].id] as Health
 
             health.pts = 5
-
-            components
         }
 
         val health = chart.readComponent(row, Health::class)
@@ -197,12 +195,10 @@ class FixedComponentChartTest {
             chart.addComponent(it, Mana(7))
         }
 
-        chart.update(Query(listOf(Cakes::class))) { components, columns ->
+        chart.select(Query(listOf(Cakes::class))) { components, columns ->
             val cakes = components[columns[0].id] as Cakes
 
             cakes.count = 5
-
-            components
         }
 
         val cakes = chart.readComponent(row, Cakes::class)

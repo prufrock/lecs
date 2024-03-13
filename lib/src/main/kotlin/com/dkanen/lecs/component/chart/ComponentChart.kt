@@ -36,8 +36,6 @@ interface ComponentChart {
     fun removeComponent(rowId: RowId, component: KClass<out Component>): RowId
 
     fun select(query: Query, read: (List<Component>, columns: List<ArchetypeColumn>) -> Unit)
-
-    fun update(query: Query, transform: (List<Component>, columns: List<ArchetypeColumn>) -> List<Component>)
 }
 
 class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = ArchetypeFactory(500)): ComponentChart {
@@ -109,15 +107,6 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
     override fun select(query: Query, read: (List<Component>, columns: List<ArchetypeColumn>) -> Unit) {
         query(query) { row, columns ->
             read(row, columns)
-        }
-    }
-
-    /**
-     * Can't delete columns from a row during an update.
-     */
-    override fun update(query: Query, transform: (List<Component>, columns: List<ArchetypeColumn>) -> List<Component>) {
-        query(query) { row, columns ->
-            transform(row, columns)
         }
     }
 
