@@ -23,7 +23,6 @@ data class RowId(val id: Int, val archetypeId: ArchetypeId)
 
 interface Component
 
-//TODO: naming is inconsistent
 interface ComponentChart {
 
     fun createRow(): RowId
@@ -126,7 +125,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
         val queryComponentIds = sortedComponentIds(query)
 
         selectArchetypes(queryComponentIds).forEach { archetype ->
-            archetype.forEachIndexed { i, row ->
+            archetype.forEach {  row ->
                 val columns = queryComponentIds.map { componentArchetype[it]!![archetype.id]!! }
                 block(row, columns)
             }
@@ -279,4 +278,3 @@ fun List<TypedComponent>.row(): MutableList<Component> = map{it.second}.toMutabl
 
 typealias Row = MutableList<Component>
 typealias TypedComponent = Pair<ComponentId, Component>
-typealias TypedComponentList = List<TypedComponent>
