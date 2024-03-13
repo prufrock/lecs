@@ -56,7 +56,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
     }
 
     override fun deleteRow(rowId: RowId) {
-        archetypes[rowId.archetypeId.id].deleteRow(rowId)
+        archetypes[rowId.archetypeId.id].delete(rowId)
     }
 
     override fun addComponent(rowId: RowId, component: Component): RowId {
@@ -93,7 +93,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
         val archetype = archetypes[rowId.archetypeId.id]
         val column = column(componentId, archetype.id) ?: throw IllegalArgumentException("The component[$componentId] for type $component does not have a column on the $archetype.")
 
-        val row = archetype.deleteRow(rowId)
+        val row = archetype.delete(rowId)
         row.removeAt(column.id)
         val type = archetype.type.toMutableList()
         type.removeAt(column.id)
@@ -145,7 +145,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
         componentId: ComponentId,
         component: Component
     ): RowId {
-        val row = archetype.deleteRow(rowId)
+        val row = archetype.delete(rowId)
         val typedComponents = (archetype.type + componentId).alignedWith(row + component)
 
         return findOrCreateArchetype(
@@ -219,7 +219,6 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
     private fun createArchetype(id: ArchetypeId, type: List<ComponentId>, components: List<KClass<out Component>>) = archetypeFactory.create(id, type, components)
 }
 
-//TODO: naming is inconsistent
 data class Archetype(
     val id: ArchetypeId,
     val type: List<ComponentId>,
@@ -236,7 +235,7 @@ data class Archetype(
         return table.read(rowId.id).toMutableList()
     }
 
-    fun deleteRow(rowId: RowId): Row {
+    fun delete(rowId: RowId): Row {
         val row = table.read(rowId.id).toMutableList()
         table.delete(rowId.id)
         return row
