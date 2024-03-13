@@ -49,12 +49,10 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
 
     private val components: MutableMap<KClass<out Component>, ComponentId> = mutableMapOf()
 
-    //TODO: I think this can be MutableMap<ComponentId, Pair<ArchetypeId, ArchetypeColumn>>
     private val componentArchetype: MutableMap<ComponentId, MutableMap<ArchetypeId, ArchetypeColumn>> = mutableMapOf()
 
     override fun createRow() = root.createRow()
 
-    //TODO: Consider adding readComponentOrNull and readComponentOrDefault for situations where a safe call might be useful.
     @Suppress("UNCHECKED_CAST")
     override fun <T: Component> readComponent(rowId: RowId, type: KClass<T>): T {
         return archetypes[rowId.archetypeId.id].read(rowId)[componentArchetype[components[type]]!![rowId.archetypeId]!!.id] as T
