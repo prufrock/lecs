@@ -108,7 +108,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
     }
 
     override fun select(query: Query, read: (List<Component>, columns: List<ArchetypeColumn>) -> Unit) {
-        query(query) { _, row, columns ->
+        query(query) { row, columns ->
             read(row, columns)
         }
     }
@@ -117,21 +117,18 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
      * Can't delete columns from a row during an update.
      */
     override fun update(query: Query, transform: (List<Component>, columns: List<ArchetypeColumn>) -> List<Component>) {
-        query(query) { rowId, row, columns ->
-            val newRow = transform(row, columns)
-            archetypes[rowId.archetypeId.id].update(rowId, newRow.toMutableList())
+        query(query) { row, columns ->
+            transform(row, columns)
         }
     }
 
-    private fun query(query: Query, block: (rowId: RowId, List<Component>, columns: List<ArchetypeColumn>) -> Unit) {
+    private fun query(query: Query, block: (List<Component>, columns: List<ArchetypeColumn>) -> Unit) {
         val queryComponentIds = sortedComponentIds(query)
 
         selectArchetypes(queryComponentIds).forEach { archetype ->
             archetype.forEachIndexed { i, row ->
-                //TODO: after implementing Table see if `RowId(i, archetype.id)` can be cleaned up
-                val rowId = RowId(i, archetype.id)
                 val columns = queryComponentIds.map { componentArchetype[it]!![archetype.id]!! }
-                block(rowId, row, columns)
+                block(row, columns)
             }
         }
     }
@@ -264,10 +261,6 @@ data class Archetype(
 
     fun insert(row: Row): RowId {
         return RowId(table.insert(row), id)
-    }
-
-    fun update(rowId: RowId, row: Row) {
-        table.update(rowId.id, row)
     }
 
     override fun iterator(): Iterator<Row> = table.iterator()
