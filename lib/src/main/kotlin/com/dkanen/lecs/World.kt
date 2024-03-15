@@ -13,15 +13,15 @@ import com.dkanen.lecs.component.chart.RowId
 class World {
 
     private val chart = FixedComponentChart()
-    private var entityCounter = 0
+    private var entityCounter = 1 // reserve 0
     private val entityMap: MutableMap<EntityId, RowId> = mutableMapOf()
 
     fun createEntity(): Entity {
-        val id = EntityId(entityCounter++)
+        val id = entityCounter++.eid
         val rowId = chart.createRow()
         entityMap[id] = rowId
 
-        return Entity(EntityId(entityCounter++), this)
+        return Entity(id, this)
     }
 
     fun addComponent(id: EntityId, component: Component) {
@@ -30,6 +30,8 @@ class World {
 }
 
 data class EntityId(val id: Int)
+
+val Int.eid get() = EntityId(this)
 
 data class Entity(val id: EntityId, private val world: World) {
     fun addComponent(component: Component) {
