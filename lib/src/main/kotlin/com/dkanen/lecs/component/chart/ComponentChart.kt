@@ -116,7 +116,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
         val queryComponentIds = sortedComponentIds(query)
 
         selectArchetypes(queryComponentIds).forEach { archetype ->
-            archetype.forEach {  row ->
+            archetype.forEach { row ->
                 val columns = queryComponentIds.map { componentArchetype[it]!![archetype.id]!! }
                 block(row, columns)
             }
