@@ -19,6 +19,8 @@ data class Query(private val components: List<KClass<out Component>>): Iterable<
     }
 }
 
+fun queryOf(vararg components: KClass<out Component>): Query = if (components.count() > 0) { Query(components.asList()) } else { Query(emptyList()) }
+
 data class RowId(val id: Int, val archetypeId: ArchetypeId)
 
 interface Component
