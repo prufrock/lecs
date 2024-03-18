@@ -102,7 +102,6 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
         val components = archetype.components.toMutableList()
         components.removeAt(column.id)
 
-
         return findOrCreateArchetype(archetype, componentId, row, type, components)
     }
 
