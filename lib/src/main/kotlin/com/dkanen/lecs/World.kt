@@ -15,6 +15,8 @@ class World {
     private var entityCounter = 1 // reserve 0
     private val entityMap: MutableMap<EntityId, RowId> = mutableMapOf()
 
+    private var systemCounter = 1 // reserve 0
+
     fun createEntity(): Entity {
         val id = entityCounter++.eid
         val rowId = chart.createRow()
@@ -48,6 +50,8 @@ class World {
             block(Components(query, components, columns))
         }
     }
+
+    fun createSystem(query: Query, block: (components: Components) -> Unit) = System(systemCounter++, query, this, block)
 }
 
 data class EntityId(val id: Int)
