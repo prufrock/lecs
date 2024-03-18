@@ -3,7 +3,7 @@ package com.dkanen.lecs.component.chart
 import kotlin.reflect.KClass
 
 
-//TODO: What if adding a new component to an entity meant that the new component was copied to an existing unused component? Would that improve memory locality?
+// What if adding a new component to an entity meant that the new component was copied to an existing unused component? Would that improve memory locality?
 interface Table: Iterable<Row> {
 
     /**
@@ -30,7 +30,6 @@ interface Table: Iterable<Row> {
 
 /**
  * Sparse because when items are deleted no attempt is made to rearrange existing items to fill the gaps.
- * TODO: test exceptions
  */
 class SparseArrayTable(override val size: Int, override val components: List<KClass<out Component>>) : Table{
 

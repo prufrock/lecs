@@ -129,7 +129,7 @@ class FixedComponentChart(private val archetypeFactory: ArchetypeFactory = Arche
 
         return componentArchetype[queryComponentIds.first()]?.map { archetypeRecord ->
             val archetype = archetypes[archetypeRecord.key.id]
-            //TODO: O(n) comparison of the elements. Query caching?
+            // O(n) comparison of the elements. Query caching?
             if (queryComponentIds.all { it in archetype.type }) {
                 archetype
             } else {

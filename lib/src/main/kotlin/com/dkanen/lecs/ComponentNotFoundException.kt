@@ -1,8 +1,5 @@
 package com.dkanen.lecs
 
-import com.dkanen.lecs.component.chart.Component
-import kotlin.reflect.KClass
-
 class ComponentNotFoundException(type: String) : Throwable(
     """
         The type: [$type} couldn't be found in the result returned when selecting from the World.

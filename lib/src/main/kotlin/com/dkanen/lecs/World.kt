@@ -25,7 +25,11 @@ class World {
         return Entity(id, this)
     }
 
-    //TODO: Delete Entity
+    fun deleteEntity(id: EntityId) {
+        val rowId = entityMap.remove(id) ?: throw EntityNotFoundException(id)
+        chart.deleteRow(rowId)
+    }
+
     fun addComponent(id: EntityId, component: Component) {
         val rowId = entityMap[id] ?: throw EntityNotFoundException(id)
         val newRow = chart.addComponent(rowId, component)
@@ -71,6 +75,10 @@ data class Entity(val id: EntityId, private val world: World) {
 
     fun <T: Component> deleteComponent(type: KClass<T>) {
         world.deleteComponent(id, type)
+    }
+
+    fun delete() {
+        world.deleteEntity(id)
     }
 
     fun <T: Component> getComponent(type: KClass<T>): T = world.getComponent(id, type)
