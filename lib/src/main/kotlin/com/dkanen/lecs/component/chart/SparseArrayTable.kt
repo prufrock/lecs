@@ -137,6 +137,10 @@ class SparseArrayTableIterator(private val table: SparseArrayTable): Iterator<Mu
     private var currentIndex = 0
 
     override fun hasNext(): Boolean {
+        // mind the gaps
+        while(currentIndex < table.index && !table.exists(currentIndex)) {
+            currentIndex += 1
+        }
         return currentIndex < table.index
     }
 
@@ -146,11 +150,6 @@ class SparseArrayTableIterator(private val table: SparseArrayTable): Iterator<Mu
     }
 
     private fun nextIndex(): Int {
-        // mind the gaps
-        while(!table.exists(currentIndex) && currentIndex < table.index) {
-            currentIndex++
-        }
-
         return currentIndex++
     }
 }
