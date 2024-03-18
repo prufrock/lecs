@@ -83,7 +83,7 @@ class SparseArrayTable(override val size: Int, override val components: List<KCl
     override fun delete(i: Int): List<Component>  {
         throwIfRowDoesNotExist(i)
 
-        deleted.add(1)
+        deleted.add(i)
 
         return items[i].toList()
     }

@@ -94,8 +94,8 @@ class FixedComponentChartTest {
         val chart = FixedComponentChart()
 
         chart.createRow().let {
-            chart.addComponent(it, Health(3))
-            chart.addComponent(it, Mana(2))
+            val newRow = chart.addComponent(it, Health(3))
+            chart.addComponent(newRow, Mana(2))
         }
         var count = 0
         val foundComponents = mutableListOf<Component>()
