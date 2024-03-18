@@ -23,6 +23,7 @@ class World {
         return Entity(id, this)
     }
 
+    //TODO: Delete Component
     fun addComponent(id: EntityId, component: Component) {
         val rowId = entityMap[id] ?: throw EntityNotFoundException(id)
         val newRow = chart.addComponent(rowId, component)
