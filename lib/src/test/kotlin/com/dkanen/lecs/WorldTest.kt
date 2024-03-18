@@ -27,10 +27,9 @@ class WorldTest {
 
         var count = 0
 
-        world.select(queryOf(Punches::class)) { components, columns ->
+        world.select(queryOf(Punches::class)) { components ->
             count++
-            //TODO: improve accessing columns
-            val punches = components[columns[0].id] as Punches
+            val punches = components.get(Punches::class)
             punches.pow = 24
         }
 
