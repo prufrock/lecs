@@ -38,6 +38,7 @@ class World {
     /**
      * The other select is easier to use, but I want to keep this one around for a little bit to compare performance.
      */
+    @Suppress("unused")
     fun select(query: Query, block: (components: List<Component>, columns: List<ArchetypeColumn>) -> Unit) {
         chart.select(query, block)
     }
