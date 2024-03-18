@@ -38,6 +38,33 @@ class WorldTest {
     }
 
     @Test
+    fun deleteComponent() {
+        val world = World()
+
+        val entity = world.createEntity()
+        entity.addComponent(Punches(32))
+        entity.addComponent(Hugs(45))
+
+        var count = 0
+
+        world.select(queryOf(Punches::class)) { components ->
+            count++
+        }
+
+        assertEquals(1, count)
+
+        entity.deleteComponent(Punches::class)
+
+        count = 0
+
+        world.select(queryOf(Punches::class)) { components ->
+            count++
+        }
+
+        assertEquals(0, count)
+    }
+
+    @Test
     fun createSystem() {
         val world = World()
 
@@ -60,3 +87,4 @@ class WorldTest {
 }
 
 data class Punches(var pow: Int = 0): Component
+data class Hugs(var care: Int = 0): Component
