@@ -31,7 +31,6 @@ interface Table: Iterable<Row> {
 /**
  * Sparse because when items are deleted no attempt is made to rearrange existing items to fill the gaps.
  * TODO: test exceptions
- * TODO: use in the archetype
  */
 class SparseArrayTable(override val size: Int, override val components: List<KClass<out Component>>) : Table{
 
